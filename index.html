@@ -224,7 +224,25 @@ details.rest>.qlist{padding:0 12px 12px}
 .stars>div{background:var(--surface);border:1px solid var(--rule);border-radius:16px;padding:14px;display:grid;gap:4px}
 .stars strong{font-family:var(--display);font-weight:400;font-size:1.3rem}
 .stars p{font-size:.88rem;color:var(--muted)}
-@media (max-width:420px){.stars{grid-template-columns:1fr}}
+.stars>div{min-width:0}
+
+.two{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:12px}
+.hint{font-size:.82rem;color:var(--muted);margin-top:-8px}
+.welcome{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--rule);border-radius:18px;padding:14px 16px}
+.welcome>div{display:grid;gap:2px}
+.welcome strong{font-family:var(--display);font-weight:400;font-size:1.3rem}
+.boosts{display:grid;gap:10px}
+.boost{display:grid;gap:4px;text-align:left;background:var(--accent-soft);border:1.5px dashed var(--accent);border-radius:16px;padding:14px 16px;cursor:pointer;font:inherit;color:var(--ink)}
+.boost strong{font-size:1rem}
+.boost span{font-size:.85rem;color:var(--muted)}
+.boost:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.compare{background:var(--surface);border:1px solid var(--rule);border-radius:20px;padding:16px;display:grid;gap:10px}
+.cmp-row{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px;align-items:baseline;border-top:1px solid var(--rule);padding-top:10px;font-size:.98rem}
+.cmp-l{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:var(--accent)}
+.arrow{color:var(--accent);font-weight:800}
+.qcard.quiz{grid-template-columns:32px minmax(0,1fr)}
+.qn{width:28px;height:28px;border-radius:50%;background:var(--plum);color:var(--bg);display:grid;place-items:center;font-weight:800;font-size:.85rem;font-variant-numeric:tabular-nums}
+.note .linkbtn{font-size:.85rem;padding:0;text-decoration:underline}
 </style>
 </head>
 <body>
@@ -428,7 +446,7 @@ const MP_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vis
 const MP_WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
 const MP_MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 const CHECK_BELOW = 0.6;   // answers below this confidence are shown for the user to verify
-const S = { screen:'home', photoUrl:null, features:{}, source:'manual', isSample:false, rating:0, lastText:'', checkIds:null, stillSide:null, me:{} };
+const S = { screen:'home', photoUrl:null, features:{}, source:'manual', isSample:false, rating:0, lastText:'', checkIds:null, stillSide:null, me:{}, quiz:{}, right:null, hasReading:false, mode:'left' };
 const CAM = { stream:null, raf:0, steady:0, last:null, phase:'idle', lastT:0, mirrored:false };
 let landmarker = null, mpState = 'idle'; // idle | loading | ready | failed
 
@@ -470,8 +488,10 @@ const LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 
 /* ---------- Home ---------- */
 function renderHome(){
+  const back = S.hasReading;
   $app.innerHTML = topbar() + `
   <section class="stack">
+    ${back?`<div class="welcome"><div><span class="label">Welcome back</span><strong>${S.me.name?esc(S.me.name):'Your reading is saved'}</strong></div><button class="btn primary" data-act="myreading">See my reading</button></div>`:''}
     <div class="hero">
       <div class="stack" style="gap:12px">
         <span class="label">Left palm · 10 areas of your life</span>
@@ -486,25 +506,28 @@ function renderHome(){
     <p class="privacy">${LOCK}<span>Your photo never leaves your phone. Everything runs in your browser.</span></p>
     <p class="note">Based on classic palmistry (Cheiro, Benham) and Hast Rekha Shastra. For fun and self-reflection; it is not science and makes no health or lifespan predictions.</p>
   </section>`;
-  bar(`<button class="btn" data-act="sample">See a sample</button><button class="btn primary" data-go="about">Read my palm</button>`);
+  bar(back ? `<button class="btn" data-act="sample">See a sample</button><button class="btn primary" data-act="restart">New reading</button>`
+           : `<button class="btn" data-act="sample">See a sample</button><button class="btn primary" data-act="startnew">Read my palm</button>`);
 }
 
 /* ---------- Camera ---------- */
 function guideSVG(){
+  const right = S.mode==='right';
   const palmPath='M62 182 Q62 172 74 172 L214 172 Q231 175 233 200 L236 300 Q236 352 198 376 L108 376 Q70 362 64 300 Z';
   const fingers = Object.values(FINGERS).map(([x,y,w,h])=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="15"/>`).join('');
-  return `<svg viewBox="26 30 268 352" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><g transform="matrix(-1 0 0 1 320 0)"><path d="${palmPath}"/>${fingers}<rect x="226" y="196" width="36" height="112" rx="18" transform="rotate(28 244 300)"/></g><text x="166" y="290" text-anchor="middle">LEFT</text></svg>`;
+  return `<svg viewBox="26 30 268 352" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><g transform="${right?'':'matrix(-1 0 0 1 320 0)'}"><path d="${palmPath}"/>${fingers}<rect x="226" y="196" width="36" height="112" rx="18" transform="rotate(28 244 300)"/></g><text x="${right?154:166}" y="290" text-anchor="middle">${right?'RIGHT':'LEFT'}</text></svg>`;
 }
 function renderPhoto(){
   const hasCam = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-  $app.innerHTML = topbar('about') + `
+  const R = S.mode==='right';
+  $app.innerHTML = topbar(R?'reading':'about') + `
   <section class="stack">
-    <span class="label">Step 2 of 4 · Photo</span>
-    <h2>Show your left palm</h2>
-    <p class="muted">Hold the phone in your <strong>right</strong> hand. Open your <strong>left</strong> palm under the camera, fingers pointing up the screen and slightly apart. Soft daylight works best.</p>
+    <span class="label">${R?'Optional · Right hand':'Step 2 of 4 · Photo'}</span>
+    <h2>Show your ${R?'right':'left'} palm</h2>
+    <p class="muted">Hold the phone in your <strong>${R?'left':'right'}</strong> hand. Open your <strong>${R?'right':'left'}</strong> palm under the camera, fingers pointing up the screen and slightly apart. Soft daylight works best.</p>
     <div class="cam" id="cam">
       <video id="vid" playsinline muted autoplay></video>
-      <img class="still" id="still" alt="Your left palm photo" hidden>
+      <img class="still" id="still" alt="Your palm photo" hidden>
       <div class="guide" id="guide">${guideSVG()}</div>
       <div class="pill" id="pill">${hasCam?'Starting camera…':'Camera not available'}</div>
       <div class="hold" id="hold"></div>
@@ -517,7 +540,7 @@ function renderPhoto(){
     </div>
     <p class="privacy">${LOCK}<span>Your photo stays on this phone. Hand measuring runs in the browser.</span></p>
   </section>`;
-  bar(`<button class="btn" data-act="manual">Skip photo, answer myself</button>`);
+  bar(R ? `<button class="btn" data-act="cancelright">Cancel</button>` : `<button class="btn" data-act="manual">Skip photo, answer myself</button>`);
   document.getElementById('shutter').onclick = ()=>capture();
   for (const id of ['camIn','galIn']) document.getElementById(id).addEventListener('change',e=>{
     const f=e.target.files&&e.target.files[0]; if(!f) return;
@@ -538,7 +561,7 @@ async function startCam(){
     CAM.mirrored = st.facingMode==='user';
     document.getElementById('cam').classList.toggle('mirror', CAM.mirrored);
     CAM.steady=0; CAM.last=null; CAM.phase='live';
-    setPill('Fit your left palm inside the outline');
+    setPill(`Fit your ${HW()} palm inside the outline`);
     loop();
   }catch(e){
     const denied = e && (e.name==='NotAllowedError' || e.name==='SecurityError');
@@ -563,10 +586,10 @@ function loop(){
   const now = performance.now(); if (now-CAM.lastT < 90) return; CAM.lastT = now;
   const v=document.getElementById('vid'); if(!v || v.readyState<2) return;
   const cam=document.getElementById('cam'), hold=document.getElementById('hold');
-  if (mpState!=='ready'){ setPill(mpState==='failed'?'Line up your left palm, then tap the button':'Line up your left palm…'); return; }
+  if (mpState!=='ready'){ setPill(mpState==='failed'?`Line up your ${HW()} palm, then tap the button`:`Line up your ${HW()} palm…`); return; }
   let res; try{ res = landmarker.detectForVideo(v, now); }catch(e){ return; }
   const lm = res && res.landmarks && res.landmarks[0];
-  if (!lm){ CAM.steady=0; cam.classList.remove('ready'); hold.style.width='0'; setPill('Show your left palm inside the outline'); return; }
+  if (!lm){ CAM.steady=0; cam.classList.remove('ready'); hold.style.width='0'; setPill(`Show your ${HW()} palm inside the outline`); return; }
   const vw=v.videoWidth, vh=v.videoHeight, bw=cam.clientWidth, bh=cam.clientHeight;
   const sc=Math.max(bw/vw,bh/vh), ox=(vw*sc-bw)/2, oy=(vh*sc-bh)/2;
   const P=lm.map(p=>({x:(p.x*vw*sc-ox)/bw, y:(p.y*vh*sc-oy)/bh}));
@@ -765,6 +788,11 @@ async function usePhoto(){
       }
     }catch(e){ console.warn(e); }
   }
+  if (S.mode==='right'){
+    if (!found){ toast('We couldn\'t find a hand in that photo. Try again in brighter light.'); const b2=document.querySelector('[data-act="usephoto"]'); if(b2){b2.disabled=false;b2.textContent='Use this photo';} setPill('Try another photo'); return; }
+    const RF={}; for (const [k,f] of Object.entries(F)) if(!f.prior) RF[k]=f;
+    S.right=RF; S.mode='left'; save(); go('reading'); toast('Right hand added'); return;
+  }
   for (const [k,f] of Object.entries(S.features)) if(f.user) F[k]=f;   // keep answers the person gave
   S.features=F; S.source=found?'auto':'manual'; S.isSample=false; S.checkIds=null;
   if (!found) toast(mpState==='ready'?'We couldn\'t find a hand in that photo, so every answer needs a quick check.':'Hand measuring is unavailable, so every answer needs a quick check.');
@@ -890,11 +918,13 @@ const PALM_TRAITS = {
 };
 const SIGN_TRAITS = {fire:{drive:1.5,leadership:1},earth:{stability:2},air:{logic:1.5,adventure:.5},water:{intuition:1.5,warmth:1}};
 const NUM_TRAITS = {1:{leadership:1.5},2:{warmth:1.5},3:{creativity:1.5},4:{stability:1.5},5:{adventure:1.5},6:{warmth:1.5},7:{intuition:1.5},8:{drive:1.5},9:{warmth:1,creativity:.5},11:{intuition:1.5},22:{leadership:1,stability:1},33:{warmth:1.5}};
-function traitProfile(F, sign, num){
+function traitProfile(F, sign, num, rashi, qt){
   const t=Object.fromEntries(Object.keys(TRAITS).map(k=>[k,0]));
   const addT=(m,w)=>{ for(const [k,v] of Object.entries(m||{})) t[k]+=v*w; };
   for (const [fid,map] of Object.entries(PALM_TRAITS)){ const f=F[fid]; if(f) addT(map[f.v], f.p??1); }
-  if (sign) addT(SIGN_TRAITS[sign.el], .8);
+  if (sign) addT(SIGN_TRAITS[sign.el], rashi ? .5 : .8);
+  if (rashi) addT(SIGN_TRAITS[rashi.el], .8);
+  if (qt) addT(qt, 1);
   if (num) addT(NUM_TRAITS[num], .6);
   const max=Math.max(...Object.values(t),1);
   return Object.entries(t).map(([k,v])=>({k,label:TRAITS[k],v,pct:Math.round(100*v/max)})).sort((a,b)=>b.v-a.v);
@@ -910,8 +940,115 @@ const FOCUS_TIP = {
   growth:{fire:'Finish one big thing before starting the next.',earth:'Try one new thing a month.',air:'Go deep on one idea instead of ten.',water:'Set boundaries without guilt.'}
 };
 
-const SAMPLE_ME = {name:'', dob:'1995-11-08', focus:'career', status:''};
+const SAMPLE_ME = {name:'', dob:'1995-11-08', tob:'', focus:'career', status:''};
+const SAMPLE_F = Object.fromEntries(Object.entries(SAMPLE).map(([k,v])=>[k,{v,p:1,c:'high'}]));
 function ME(){ return S.isSample ? SAMPLE_ME : S.me; }
+function HW(){ return S.mode==='right' ? 'right' : 'left'; }
+
+/* ---------- Vedic moon sign (rashi) and nakshatra ----------
+   Moon position from the main terms of Meeus' lunar theory (accurate to well under
+   a degree), made sidereal with the Lahiri ayanamsa used in Indian astrology.
+   Birth time is taken as Indian Standard Time; without it we check the whole day. */
+const RASHI = [
+  ['Mesha','मेष','fire','Fearless, quick to act and full of fire.'],['Vrishabha','वृषभ','earth','Calm, loyal and fond of life’s comforts.'],
+  ['Mithuna','मिथुन','air','Chatty, clever and always curious.'],['Karka','कर्क','water','Caring, emotional and deeply protective.'],
+  ['Simha','सिंह','fire','Proud, generous and born to lead.'],['Kanya','कन्या','earth','Careful, kind and quietly perfectionist.'],
+  ['Tula','तुला','air','Graceful, fair and a natural diplomat.'],['Vrishchika','वृश्चिक','water','Intense, private and deeply loyal.'],
+  ['Dhanu','धनु','fire','Honest, optimistic and a born explorer.'],['Makara','मकर','earth','Disciplined, ambitious and patient.'],
+  ['Kumbha','कुंभ','air','Independent, humane and ahead of the times.'],['Meena','मीन','water','Gentle, dreamy and spiritually inclined.']
+];
+const NAKSHATRA = [
+  ['Ashwini','अश्विनी','energetic and quick to heal'],['Bharani','भरणी','strong-willed and creative'],['Krittika','कृत्तिका','sharp and determined'],
+  ['Rohini','रोहिणी','charming and artistic'],['Mrigashira','मृगशिरा','a curious, gentle seeker'],['Ardra','आर्द्रा','an intense thinker'],
+  ['Punarvasu','पुनर्वसु','optimistic and nurturing'],['Pushya','पुष्य','caring and dependable'],['Ashlesha','आश्लेषा','perceptive and magnetic'],
+  ['Magha','मघा','regal and proud of her roots'],['Purva Phalguni','पूर्वा फाल्गुनी','fun-loving and warm'],['Uttara Phalguni','उत्तरा फाल्गुनी','generous and loyal'],
+  ['Hasta','हस्त','skilful and witty'],['Chitra','चित्रा','stylish and creative'],['Swati','स्वाति','independent and flexible'],
+  ['Vishakha','विशाखा','goal-driven and passionate'],['Anuradha','अनुराधा','devoted and friendly'],['Jyeshtha','ज्येष्ठा','protective and wise'],
+  ['Mula','मूल','bold and truth-seeking'],['Purva Ashadha','पूर्वाषाढ़ा','confident and persuasive'],['Uttara Ashadha','उत्तराषाढ़ा','principled and enduring'],
+  ['Shravana','श्रवण','a great listener'],['Dhanishta','धनिष्ठा','musical and prosperous'],['Shatabhisha','शतभिषा','an independent healer'],
+  ['Purva Bhadrapada','पूर्वभाद्रपद','idealistic and intense'],['Uttara Bhadrapada','उत्तरभाद्रपद','calm and wise'],['Revati','रेवती','gentle and compassionate']
+];
+function julianDay(y,m,d,hours){ if(m<=2){y-=1;m+=12;} const A=Math.floor(y/100), B=2-A+Math.floor(A/4); return Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d+B-1524.5+hours/24; }
+function moonTropical(jd){
+  const T=(jd-2451545)/36525, r=Math.PI/180;
+  const L=218.3164477+481267.88123421*T, D=(297.8501921+445267.1114034*T)*r, M=(357.5291092+35999.0502909*T)*r;
+  const Mp=(134.9633964+477198.8675055*T)*r, F=(93.2720950+483202.0175233*T)*r, E=1-0.002516*T;
+  const s=Math.sin;
+  const sum=6288774*s(Mp)+1274027*s(2*D-Mp)+658314*s(2*D)+213618*s(2*Mp)-185116*E*s(M)-114332*s(2*F)
+    +58793*s(2*D-2*Mp)+57066*E*s(2*D-M-Mp)+53322*s(2*D+Mp)+45758*E*s(2*D-M)-40923*E*s(M-Mp)-34720*s(D)
+    -30383*E*s(M+Mp)+15327*s(2*D-2*F)-12528*s(Mp+2*F)+10980*s(Mp-2*F)+10675*s(4*D-Mp)+10034*s(3*Mp)
+    +8548*s(4*D-2*Mp)-7888*E*s(2*D+M-Mp)-6766*E*s(2*D+M)-5163*s(D-Mp)+4987*E*s(D+M)+4036*E*s(2*D-M+Mp);
+  return (((L+sum/1e6)%360)+360)%360;
+}
+function moonSidereal(iso, hhmm){
+  const [y,m,d]=iso.split('-').map(Number), [hh,mm]=hhmm.split(':').map(Number);
+  const jd=julianDay(y,m,d,hh+mm/60-5.5);               // IST → UTC
+  const ayan=23.853+((jd-2451545)/365.25)*(50.29/3600);   // Lahiri
+  return (((moonTropical(jd)-ayan)%360)+360)%360;
+}
+function vedic(me){
+  if (!me.dob || !/^\d{4}-\d{2}-\d{2}$/.test(me.dob)) return null;
+  const at=(t)=>{ const lon=moonSidereal(me.dob,t); return {r:Math.floor(lon/30), n:Math.floor(lon/(360/27))}; };
+  if (me.tob && /^\d{2}:\d{2}$/.test(me.tob)){ const a=at(me.tob); return {rashi:[a.r], nak:[a.n], exact:true}; }
+  const a=at('00:00'), b=at('23:59');
+  return {rashi:[...new Set([a.r,b.r])], nak:[...new Set([a.n,b.n])], exact:false};
+}
+
+/* ---------- Optional quiz: tailors the reading after the first result ----------
+   Each answer adds to the trait profile, and fills in any palm feature the camera
+   was unsure of (and the person didn't check by hand). */
+const QUIZ = [
+  {id:'love', q:'How do you show love?', feat:'heartCurve', opts:[['Openly, with words and hugs','curved',{warmth:1}],['Quietly, through actions','straight',{stability:.6}]]},
+  {id:'decide', q:'Facing a big decision, you…', feat:'headShape', opts:[['List the facts','straight',{logic:1}],['Go with your gut','sloping',{intuition:1}]]},
+  {id:'weekend', q:'Your ideal weekend', feat:'lifeArc', opts:[['Somewhere new','wide',{adventure:1}],['Cosy at home','close',{stability:1}]]},
+  {id:'work', q:'Your working life so far', feat:'fate', opts:[['I follow a clear plan','strong',{drive:1}],['I follow my interests','faint',{creativity:.6}],['Lots of changes of direction','absent',{adventure:1}]]},
+  {id:'group', q:'In a group, you usually…', feat:'indexVsRing', opts:[['Take charge','longer',{leadership:1}],['Keep the peace','equal',{warmth:.6}],['Bring the ideas','shorter',{creativity:1}]]},
+  {id:'money', q:'With money, you…', feat:'triangle', opts:[['Save first','closed',{stability:.7}],['Enjoy it, then save','open',{adventure:.5}]]},
+  {id:'gut', q:'Your gut feelings are…', feat:'luna', opts:[['Usually right; I trust them','full',{intuition:1}],['Not reliable; I want facts','flat',{logic:1}]]},
+  {id:'grit', q:'Once you set your mind on something…', feat:'thumbLength', opts:[['I never give up','long',{drive:1}],['I push, within reason','average',{}],['I go with the flow','short',{warmth:.5}]]}
+];
+function effF(){
+  if (S.isSample) return SAMPLE_F;
+  const F={...S.features};
+  for (const q of QUIZ){ const i=S.quiz[q.id]; if(i==null) continue; const f=F[q.feat];
+    if (!f || (!f.user && f.p<CHECK_BELOW)) F[q.feat]=feat(q.opts[i][1], .65, {quiz:true}); }
+  return F;
+}
+function quizTraits(){ const t={}; if(S.isSample) return t; for (const q of QUIZ){ const i=S.quiz[q.id]; if(i==null) continue; for(const [k,v] of Object.entries(q.opts[i][2])) t[k]=(t[k]||0)+v; } return t; }
+
+/* ---------- Both hands: born with (left) vs made of it (right) ---------- */
+const GROWTH = {
+  headShape:['Mind',{straight:'logical',sloping:'imaginative'}],
+  heartCurve:['Heart',{curved:'expressive',straight:'reserved'}],
+  heartEnd:['Love',{jupiter:'idealistic',between:'balanced',saturn:'cautious'}],
+  lifeArc:['Energy',{wide:'adventurous',close:'home-loving'}],
+  lifeDepth:['Vitality',{deep:'high-energy',faint:'energy-conscious'}],
+  fate:['Career',{strong:'set on one path',faint:'open to change',absent:'free of fixed plans'}],
+  sun:['Recognition',{present:'in the spotlight',absent:'quietly successful'}],
+  thumbAngle:['Openness',{wide:'open',narrow:'guarded'}],
+  indexVsRing:['Drive',{longer:'self-directed',equal:'balanced',shorter:'creative'}]
+};
+function compareHands(L,R){
+  const out=[];
+  for (const [k,[label,words]] of Object.entries(GROWTH)){
+    const a=L[k], b=R[k]; if(!a||!b||a.prior||(a.p??1)<.5||(b.p??1)<.5) continue;
+    if (a.v!==b.v && words[a.v] && words[b.v]) out.push({label, from:words[a.v], to:words[b.v], w:Math.min(a.p??1,b.p??1)});
+  }
+  return out.sort((x,y)=>y.w-x.w).slice(0,3);
+}
+
+/* ---------- Saved profile (on this phone only) ---------- */
+const STORE='palmReading.v1';
+function save(){
+  if (S.isSample) return;
+  try{ localStorage.setItem(STORE, JSON.stringify({me:S.me, features:S.features, quiz:S.quiz, right:S.right, hasReading:S.hasReading, rating:S.rating, at:Date.now()})); }catch(e){}
+}
+function load(){
+  try{ const d=JSON.parse(localStorage.getItem(STORE)||'null'); if(!d) return;
+    S.me=d.me||{}; S.features=d.features||{}; S.quiz=d.quiz||{}; S.right=d.right||null; S.hasReading=!!d.hasReading; S.rating=d.rating||0;
+  }catch(e){}
+}
+function forget(){ try{ localStorage.removeItem(STORE); }catch(e){} S.me={}; S.features={}; S.quiz={}; S.right=null; S.hasReading=false; S.rating=0; }
 
 /* ---------- About you screen ---------- */
 function renderAbout(){
@@ -919,11 +1056,15 @@ function renderAbout(){
   $app.innerHTML = topbar('home') + `
   <section class="stack">
     <span class="label">Step 1 of 4 · About you</span>
-    <h2>A little about you</h2>
-    <p class="muted">Four quick questions so your reading speaks to you. All optional; nothing leaves your phone.</p>
+    <h2>${me.name?`Welcome back, ${esc(me.name)}`:'A little about you'}</h2>
+    <p class="muted">A few quick details so your reading speaks to you. All optional; saved only on this phone.</p>
     <div class="form">
       <label class="field" for="nm"><span>First name</span><input id="nm" type="text" autocomplete="given-name" placeholder="e.g. Priya" value="${esc(me.name||'')}"></label>
-      <label class="field" for="dob"><span>Date of birth <em class="muted">for your star sign and birth number</em></span><input id="dob" type="date" max="${new Date().toISOString().slice(0,10)}" value="${me.dob||''}"></label>
+      <div class="two">
+        <label class="field" for="dob"><span>Date of birth</span><input id="dob" type="date" max="${new Date().toISOString().slice(0,10)}" value="${me.dob||''}"></label>
+        <label class="field" for="tob"><span>Birth time <em class="muted">if known</em></span><input id="tob" type="time" value="${me.tob||''}"></label>
+      </div>
+      <p class="hint">Date gives your star sign, moon sign (rashi) and birth number. Time pins your nakshatra exactly.</p>
       <div class="field" role="group" aria-label="What's on your mind most right now?"><span>What’s on your mind most right now?</span>
         <div class="chips">${Object.entries(FOCUS).map(([k,[en,hi]])=>`<button class="chip" data-me="focus" data-v="${k}" aria-pressed="${me.focus===k}">${en} <span class="hi">${hi}</span></button>`).join('')}</div></div>
       <div class="field" role="group" aria-label="Relationship"><span>Relationship</span>
@@ -933,9 +1074,28 @@ function renderAbout(){
   bar(`<button class="btn" data-act="aboutnext">Skip</button><button class="btn primary" data-act="aboutnext">Continue</button>`);
 }
 function saveAbout(){
-  const nm=document.getElementById('nm'), dob=document.getElementById('dob');
+  const nm=document.getElementById('nm'), dob=document.getElementById('dob'), tob=document.getElementById('tob');
   if (nm) S.me.name=nm.value.trim().slice(0,30);
   if (dob) S.me.dob=dob.value;
+  if (tob) S.me.tob=tob.value;
+}
+
+/* ---------- Quiz screen ---------- */
+function renderQuiz(){
+  const n=QUIZ.filter(q=>S.quiz[q.id]!=null).length;
+  $app.innerHTML = topbar('reading') + `
+  <section class="stack">
+    <span class="label">Optional · Tailor your reading</span>
+    <h2>8 quick questions</h2>
+    <p class="muted">Your answers fill in what the camera couldn’t see clearly and sharpen your trait mix. Answer as many as you like.</p>
+    <div class="qlist">${QUIZ.map((q,qi)=>`
+      <div class="qcard quiz" role="group" aria-label="${esc(q.q)}">
+        <span class="qn">${qi+1}</span>
+        <div class="qc-main"><strong class="qc-label">${q.q}</strong>
+          <div class="chips">${q.opts.map(([l],i)=>`<button class="chip" data-quiz="${q.id}" data-i="${i}" aria-pressed="${S.quiz[q.id]===i}">${l}</button>`).join('')}</div>
+        </div></div>`).join('')}</div>
+  </section>`;
+  bar(`<span class="meta">${n} of ${QUIZ.length} answered</span><button class="btn primary" data-act="quizdone" ${n?'':'disabled'}>Update my reading</button>`);
 }
 
 /* ---------- Reading (short) ---------- */
@@ -948,26 +1108,33 @@ function readingModel(F){
   const R=buildReading(F).map(r=>({...r, short:shortFor(r.key,F)}));
   const me=ME(); let sign=null, num=null;
   if (me.dob && /^\d{4}-\d{2}-\d{2}$/.test(me.dob)){ const [y,m,d]=me.dob.split('-').map(Number); sign=sunSign(m,d); num=lifePath(me.dob); }
+  const ved=vedic(me);
+  const rashi = ved && ved.rashi.length===1 ? {name:RASHI[ved.rashi[0]][0], el:RASHI[ved.rashi[0]][2]} : null;
   const hand=F.hand&&F.hand.v;
-  const traits=traitProfile(F,sign,num);
-  return {R,sign,num,hand,traits};
+  const traits=traitProfile(F,sign,num,rashi,quizTraits());
+  return {R,sign,num,ved,rashi,hand,traits};
 }
 function renderReading(){
-  const F=S.features; const M=readingModel(F); const me=ME();
+  const F=effF(); const M=readingModel(F); const me=ME();
   const handName={earth:'Earth hand',air:'Air hand',fire:'Fire hand',water:'Water hand'}[M.hand]||'Your palm';
   const top3=M.traits.slice(0,3).map(t=>t.label);
   const who = me.name ? `${esc(me.name)}, you have` : 'You have';
-  const combo = comboLine(M.hand, M.sign) || shortFor('personality',F);
+  const signForCombo = M.rashi ? {name:M.rashi.name+' moon', el:M.rashi.el} : M.sign;
+  const combo = comboLine(M.hand, signForCombo) || shortFor('personality',F);
   const focus = me.focus && FOCUS[me.focus];
   const focusRows = focus ? focus[2].map(k=>M.R.find(r=>r.key===k)) : [];
-  const tipEl = M.sign ? M.sign.el : (M.hand||'water');
-  const sources = ['palm', M.sign&&M.sign.name, M.num&&`birth number ${M.num}`].filter(Boolean);
+  const tipEl = signForCombo ? signForCombo.el : (M.hand||'water');
+  const quizN = Object.keys(S.quiz).length;
+  const sources = ['palm', M.sign&&M.sign.name, M.rashi&&`${M.rashi.name} moon`, M.num&&`birth number ${M.num}`, (!S.isSample&&quizN)?'quiz answers':null].filter(Boolean);
+  const cmp = (!S.isSample && S.right) ? compareHands(F, S.right) : null;
+  const rashiTxt = M.ved ? M.ved.rashi.map(i=>`${RASHI[i][0]} <span class="hi muted">${RASHI[i][1]}</span>`).join(' or ') : '';
+  const nakTxt = M.ved ? M.ved.nak.map(i=>`${NAKSHATRA[i][0]}`).join(' or ') : '';
   $app.innerHTML = topbar(S.isSample?'home':'confirm') + `
   <section class="stack">
     ${S.isSample?`<p class="sample-flag">This is an example palm, not yours. Photograph your left palm to get your own reading.</p>`:''}
     <div class="result-hero">
       <div class="stack" style="gap:10px">
-        <span class="label">${S.isSample?'Sample reading':'Your left palm'}</span>
+        <span class="label">${S.isSample?'Sample reading':'Your left palm'}${!S.isSample&&quizN?' · tailored':''}</span>
         <p class="who">${who} a</p>
         <div class="element">${handName}</div>
         <div class="traits">${top3.map(t=>`<span class="trait">${t}</span>`).join('')}</div>
@@ -997,31 +1164,47 @@ function renderReading(){
       </details>`).join('')}
       <p class="muted" style="font-size:.8rem">Tap any line for the why.</p>
     </div>
+    ${cmp?`<div class="compare">
+      <span class="label">Born with → made of it · left vs right hand</span>
+      ${cmp.length?cmp.map(c=>`<div class="cmp-row"><span class="cmp-l">${c.label}</span><span>${c.from} <span class="arrow">→</span> <strong>${c.to}</strong></span></div>`).join('')
+        :`<p>Your two hands match closely: you’ve stayed true to who you were born as.</p>`}
+      ${cmp.length?`<p class="muted" style="font-size:.82rem">Your left hand shows what you were born with; your right shows what you’ve made of it.</p>`:''}
+    </div>`:''}
+    ${S.isSample?'':`<div class="boosts">
+      ${S.right?'':`<button class="boost" data-act="righthand"><strong>Compare with your right hand</strong><span>See what you were born with vs what you’ve made of it · 30 sec</span></button>`}
+      <button class="boost" data-go="quiz"><strong>${quizN?'Edit your quiz answers':'Make it more accurate'}</strong><span>${quizN?`${quizN} of 8 answered`:'8 quick questions · 1 min'}</span></button>
+    </div>`}
     <div class="mix">
       <span class="label">Your trait mix</span>
       ${M.traits.map(t=>`<div class="bar-row"><span>${t.label}</span><span class="track"><span style="width:${t.pct}%"></span></span></div>`).join('')}
       <p class="muted" style="font-size:.8rem">Blended from your ${sources.join(', ').replace(/, ([^,]*)$/,' and $1')}.</p>
     </div>
     ${M.sign?`<div class="stars">
-      <div><span class="label">Star sign</span><strong>${M.sign.name} <span class="hi muted">${M.sign.hi}</span></strong><p>${M.sign.line}</p></div>
+      <div><span class="label">Moon sign · rashi</span><strong>${rashiTxt}</strong><p>${M.ved.rashi.length===1?RASHI[M.ved.rashi[0]][3]:'Add your birth time to pin it down.'}</p></div>
+      <div><span class="label">Nakshatra</span><strong>${nakTxt}</strong><p>${M.ved.nak.length===1?`You are ${NAKSHATRA[M.ved.nak[0]][2]}.`:'The moon changed nakshatra that day; add your birth time.'}</p></div>
+      <div><span class="label">Sun sign</span><strong>${M.sign.name}</strong><p>${M.sign.line}</p></div>
       <div><span class="label">Birth number</span><strong>${M.num}</strong><p>${LIFEPATH[M.num]}</p></div>
-    </div>`:''}
+    </div>
+    ${!M.ved.exact?`<p class="hint">Moon signs use Indian time; add your birth time on the first step for an exact nakshatra.</p>`:''}`:''}
     ${S.isSample?'':`<div class="rate" role="group" aria-label="Rate your reading">
       <strong>How well does this describe you?</strong>
       <div class="chips">${[['1','Not at all'],['2','A little'],['3','Partly'],['4','Mostly'],['5','Spot on']].map(([v,l])=>`<button class="chip" data-rate="${v}" aria-pressed="${S.rating==v}">${l}</button>`).join('')}</div>
     </div>`}
-    <p class="note">For fun and self-reflection. Palmistry and astrology are traditions, not science; nothing here predicts health, lifespan or fixed events.</p>
+    <p class="note">For fun and self-reflection. Palmistry and astrology are traditions, not science; nothing here predicts health, lifespan or fixed events.${S.isSample?'':` Your details are saved only on this phone. <button class="linkbtn" data-act="forget">Forget me</button>`}</p>
     <div id="copyWrap" hidden><textarea class="copybox" id="copyBox" readonly></textarea></div>
   </section>`;
   bar(S.isSample
-    ? `<button class="btn" data-go="home">Home</button><button class="btn primary" data-go="about">Read my palm</button>`
-    : `<button class="btn" data-act="restart">Start over</button><button class="btn primary" data-act="share">Share my reading</button>`);
-  S.lastText = `${me.name?me.name+'’s':'My'} palm reading: ${handName} · ${top3.join(', ')}\n${combo}\n\n` + M.R.map(r=>`• ${r.name}: ${r.short||r.headline}`).join('\n') + (M.sign?`\n\n${M.sign.name} · Birth number ${M.num}`:'');
+    ? `<button class="btn" data-act="leavesample">Home</button><button class="btn primary" data-act="startnew">Read my palm</button>`
+    : `<button class="btn" data-act="restart">New reading</button><button class="btn primary" data-act="share">Share my reading</button>`);
+  S.lastText = `${me.name?me.name+'’s':'My'} palm reading: ${handName} · ${top3.join(', ')}\n${combo}\n\n` + M.R.map(r=>`• ${r.name}: ${r.short||r.headline}`).join('\n')
+    + (cmp&&cmp.length?`\n\nBorn with → made of it:\n`+cmp.map(c=>`• ${c.label}: ${c.from} → ${c.to}`).join('\n'):'')
+    + (M.sign?`\n\n${M.ved.rashi.map(i=>RASHI[i][0]).join('/')} moon · ${M.ved.nak.map(i=>NAKSHATRA[i][0]).join('/')} · ${M.sign.name} sun · Birth number ${M.num}`:'');
+  if (!S.isSample){ S.hasReading=true; save(); }
 }
 function shareText(){
   const labels={1:'Not at all',2:'A little',3:'Partly',4:'Mostly',5:'Spot on'};
   const checked=Object.values(S.features).filter(f=>f.user).length;
-  return (S.rating?`Accuracy: ${S.rating}/5 (${labels[S.rating]}) · ${checked} answers checked\n\n`:'') + S.lastText + `\n\nRead yours: ${location.href.split('#')[0]}`;
+  return (S.rating?`Accuracy: ${S.rating}/5 (${labels[S.rating]}) · ${checked} answers checked · quiz ${Object.keys(S.quiz).length}/8\n\n`:'') + S.lastText + `\n\nRead yours: ${location.href.split('#')[0]}`;
 }
 
 function render(){
@@ -1029,6 +1212,7 @@ function render(){
   else if (S.screen==='about') renderAbout();
   else if (S.screen==='photo') renderPhoto();
   else if (S.screen==='confirm') renderConfirm();
+  else if (S.screen==='quiz') renderQuiz();
   else renderReading();
 }
 
@@ -1040,18 +1224,25 @@ document.addEventListener('click',async e=>{
     const y=window.scrollY, restOpen=document.querySelector('details.rest')?.open;
     renderConfirm(); if(restOpen) document.querySelector('details.rest').open=true; window.scrollTo({top:y}); return; }
   const mc=e.target.closest('.chip[data-me]'); if(mc){ saveAbout(); const k=mc.dataset.me, v=mc.dataset.v; S.me[k] = S.me[k]===v ? '' : v; renderAbout(); return; }
-  const rt=e.target.closest('.chip[data-rate]'); if(rt){ S.rating=Number(rt.dataset.rate); document.querySelectorAll('.chip[data-rate]').forEach(b=>b.setAttribute('aria-pressed', b===rt)); return; }
+  const qz=e.target.closest('.chip[data-quiz]'); if(qz){ const id=qz.dataset.quiz, i=Number(qz.dataset.i); if(S.quiz[id]===i) delete S.quiz[id]; else S.quiz[id]=i; const y=window.scrollY; renderQuiz(); window.scrollTo({top:y}); return; }
+  const rt=e.target.closest('.chip[data-rate]'); if(rt){ S.rating=Number(rt.dataset.rate); document.querySelectorAll('.chip[data-rate]').forEach(b=>b.setAttribute('aria-pressed', b===rt)); save(); return; }
   const a=e.target.closest('[data-act]'); if(!a) return;
   const act=a.dataset.act;
-  if (act==='sample'){ S.features=Object.fromEntries(Object.entries(SAMPLE).map(([k,v])=>[k,{v,p:1,c:'high'}])); S.isSample=true; go('reading'); }
+  if (act==='sample'){ S.isSample=true; go('reading'); }
+  else if (act==='leavesample'){ S.isSample=false; go('home'); }
+  else if (act==='startnew'){ S.isSample=false; S.mode='left'; go('about'); }
+  else if (act==='myreading'){ S.isSample=false; go('reading'); }
   else if (act==='manual'){ S.features=priorFeatures(); S.source='manual'; S.isSample=false; S.checkIds=null; go('confirm'); }
   else if (act==='retake'){ if(S.photoUrl) URL.revokeObjectURL(S.photoUrl); S.photoUrl=null; S.stillSide=null; renderPhoto(); }
   else if (act==='usephoto') usePhoto();
-  else if (act==='aboutnext'){ saveAbout(); go('photo'); }
-  else if (act==='useanyway'){ S.stillSide='override'; usePhoto(); }
+  else if (act==='aboutnext'){ saveAbout(); save(); S.mode='left'; go('photo'); }
+  else if (act==='righthand'){ S.mode='right'; if(S.photoUrl) URL.revokeObjectURL(S.photoUrl); S.photoUrl=null; go('photo'); }
+  else if (act==='cancelright'){ S.mode='left'; go('reading'); }
+  else if (act==='quizdone'){ save(); go('reading'); toast('Reading updated with your answers'); }
   else if (act==='zoom'){ const z=document.createElement('div'); z.className='zoom'; z.innerHTML=`<img src="${S.photoUrl}" alt="Your palm photo, enlarged"><button class="btn primary">Close</button>`; z.onclick=()=>z.remove(); document.body.append(z); }
   else if (act==='read'){ S.isSample=false; S.rating=0; go('reading'); }
-  else if (act==='restart'){ S.features={}; if(S.photoUrl)URL.revokeObjectURL(S.photoUrl); S.photoUrl=null; S.source='manual'; S.rating=0; S.checkIds=null; go('home'); }
+  else if (act==='restart'){ S.features={}; S.quiz={}; S.right=null; S.hasReading=false; if(S.photoUrl)URL.revokeObjectURL(S.photoUrl); S.photoUrl=null; S.source='manual'; S.rating=0; S.checkIds=null; S.mode='left'; save(); go('about'); }
+  else if (act==='forget'){ forget(); go('home'); toast('Your saved details are cleared'); }
   else if (act==='share'){
     const text=shareText();
     if (navigator.share){ try{ await navigator.share({title:'My palm reading', text}); return; }catch(err){ if(err&&err.name==='AbortError') return; } }
@@ -1060,6 +1251,7 @@ document.addEventListener('click',async e=>{
   }
 });
 document.addEventListener('visibilitychange',()=>{ if(document.hidden && S.screen==='photo' && CAM.phase==='live') stopCam(); else if(!document.hidden && S.screen==='photo' && !S.photoUrl && !CAM.stream) startCam(); });
+load();
 render();
 
 </script>
