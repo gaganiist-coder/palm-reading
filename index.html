@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Palm Reading · हस्तरेखा</title>
+<title>Palm Reading · Chiromancie</title>
 <meta name="description" content="Photograph your left palm and get a 10-area reading based on classic palmistry and Hast Rekha Shastra.">
 <meta name="theme-color" content="#5b2a63">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta property="og:title" content="Palm Reading · हस्तरेखा">
+<meta property="og:title" content="Palm Reading · Chiromancie">
 <meta property="og:description" content="What does your left hand say about you? Love, mind, career, money and more.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235b2a63'/%3E%3Cpath d='M18 40c6-3 14-4 26-8M20 30c8-2 16-2 26-6M38 52c-6-8-6-18-2-28' stroke='%23f0a24a' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yeseva+One&family=Mulish:wght@400;600;700;800&family=Tiro+Devanagari+Hindi&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yeseva+One&family=Mulish:wght@400;600;700;800&display=swap">
 <style>
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0} img{max-width:100%} [hidden]{display:none!important}
@@ -24,7 +24,7 @@ body{margin:0} img{max-width:100%} [hidden]{display:none!important}
   --good:#3f7d5a; --warn:#a86a12;
   --display:"Yeseva One", Georgia, "Times New Roman", serif;
   --body:"Mulish", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --hindi:"Tiro Devanagari Hindi", "Noto Sans Devanagari", "Mangal", serif;
+  --hindi:"Mulish", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
@@ -45,7 +45,7 @@ h1{font-size:clamp(2.1rem,8vw,2.8rem)}
 h2{font-size:1.7rem}
 h3{font-size:1.25rem}
 p{margin:0}
-.hi{font-family:var(--hindi);font-size:.95em}
+.hi{font-family:var(--hindi);font-size:.9em;font-style:italic;font-weight:400}
 .label{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:var(--muted)}
 .muted{color:var(--muted)}
 .stack{display:flex;flex-direction:column;gap:16px}
@@ -286,8 +286,8 @@ function palmSVG(hl=[], o={}){
   }
   let labels='';
   if (o.labels){
-    const L=(x,y,a,en,hi)=>`<text x="${x}" y="${y}" text-anchor="${a}" font-family="Mulish, sans-serif" font-size="11" font-weight="800" fill="var(--ink)">${en}</text><text x="${x}" y="${y+13}" text-anchor="${a}" font-family="Tiro Devanagari Hindi, serif" font-size="11" fill="var(--muted)">${hi}</text>`;
-    labels = L(316,232,'end','Heart','हृदय')+L(316,262,'end','Head','मस्तिष्क')+L(4,380,'start','Life','जीवन')+L(170,394,'middle','Fate','भाग्य');
+    const L=(x,y,a,en,hi)=>`<text x="${x}" y="${y}" text-anchor="${a}" font-family="Mulish, sans-serif" font-size="11" font-weight="800" fill="var(--ink)">${en}</text><text x="${x}" y="${y+13}" text-anchor="${a}" font-family="Mulish, sans-serif" font-style="italic" font-size="11" fill="var(--muted)">${hi}</text>`;
+    labels = L(316,232,'end','Heart','Cœur')+L(316,262,'end','Head','Tête')+L(4,380,'start','Life','Vie')+L(170,394,'middle','Fate','Destin');
   }
   const vb = o.labels ? '0 26 320 384' : '40 30 280 352';
   return `<svg viewBox="${vb}" role="img" aria-label="${o.aria||'Left palm diagram'}" xmlns="http://www.w3.org/2000/svg">
@@ -297,35 +297,35 @@ function palmSVG(hl=[], o={}){
 
 /* ---------- Questions (feature schema) ---------- */
 const GROUPS = [
- {id:'shape', title:'Hand shape', hi:'हाथ का आकार', sub:'Sets your basic temperament', hl:['shape'], qs:[
+ {id:'shape', title:'Hand shape', hi:'Forme de la main', sub:'Sets your basic temperament', hl:['shape'], qs:[
   {id:'hand', label:'Palm and finger proportions', help:'Palm length runs wrist to finger base. "Long" fingers are close to the palm\'s length.', opts:[['earth','Square palm, short fingers'],['air','Square palm, long fingers'],['fire','Long palm, short fingers'],['water','Long palm, long fingers']]}]},
- {id:'heart', title:'Heart line', hi:'हृदय रेखा', sub:'Top line, starts under the little finger', hl:['heart'], qs:[
+ {id:'heart', title:'Heart line', hi:'Ligne de cœur', sub:'Top line, starts under the little finger', hl:['heart'], qs:[
   {id:'heartEnd', label:'Where it ends', opts:[['jupiter','Under the index finger'],['between','Between index and middle'],['saturn','Under the middle finger']]},
   {id:'heartCurve', label:'Its shape', opts:[['curved','Curves upward'],['straight','Fairly straight']]},
   {id:'heartLength', label:'Its length', opts:[['long','Long, crosses most of the palm'],['short','Short']]},
   {id:'heartMarks', label:'Along the line', opts:[['clear','Clean and unbroken'],['branches','Small branches rising'],['broken','Breaks or chain-like']]}]},
- {id:'head', title:'Head line', hi:'मस्तिष्क रेखा', sub:'Middle line, starts near the thumb', hl:['head'], qs:[
+ {id:'head', title:'Head line', hi:'Ligne de tête', sub:'Middle line, starts near the thumb', hl:['head'], qs:[
   {id:'headShape', label:'Its direction', opts:[['straight','Straight across'],['sloping','Slopes down toward the wrist']]},
   {id:'headLength', label:'Its length', opts:[['long','Long'],['medium','Medium'],['short','Short']]},
   {id:'headStart', label:'Where it starts', opts:[['joined','Joined to the life line'],['separate','Separate from the life line']]},
   {id:'headFork', label:'A fork at its end?', opts:[['yes','Yes, it splits in two'],['no','No']]}]},
- {id:'life', title:'Life line', hi:'जीवन रेखा', sub:'Curves around the base of the thumb', hl:['life'], qs:[
+ {id:'life', title:'Life line', hi:'Ligne de vie', sub:'Curves around the base of the thumb', hl:['life'], qs:[
   {id:'lifeArc', label:'Its curve', opts:[['wide','Sweeps wide into the palm'],['close','Hugs the thumb']]},
   {id:'lifeDepth', label:'How deep it looks', opts:[['deep','Deep and clear'],['faint','Faint or thin']]},
   {id:'lifeBreak', label:'Any breaks?', opts:[['none','Unbroken'],['break','Has a break or gap']]}]},
- {id:'fate', title:'Fate and sun lines', hi:'भाग्य व सूर्य रेखा', sub:'Vertical lines up the centre and under the ring finger', hl:['fate','sun'], qs:[
+ {id:'fate', title:'Fate and sun lines', hi:'Lignes du destin et du soleil', sub:'Vertical lines up the centre and under the ring finger', hl:['fate','sun'], qs:[
   {id:'fate', label:'Fate line (centre, rising toward the middle finger)', opts:[['strong','Strong and clear'],['faint','Faint'],['absent','Can\'t see one']]},
   {id:'fateStart', label:'Where the fate line starts', showIf:f=>f.fate&&f.fate.v!=='absent', opts:[['wrist','At the wrist'],['life','From the life line'],['luna','From the outer palm edge']]},
   {id:'sun', label:'Sun line (short line under the ring finger)', opts:[['present','I can see one'],['absent','Can\'t see one']]}]},
- {id:'fingers', title:'Fingers and thumb', hi:'उँगलियाँ व अँगूठा', sub:'Hold fingers together and straight', hl:['index','ring','thumb'], qs:[
+ {id:'fingers', title:'Fingers and thumb', hi:'Doigts et pouce', sub:'Hold fingers together and straight', hl:['index','ring','thumb'], qs:[
   {id:'indexVsRing', label:'Index finger compared with ring finger', opts:[['longer','Index is longer'],['equal','About equal'],['shorter','Index is shorter']]},
   {id:'thumbLength', label:'Thumb length', help:'Long if the tip passes the middle of the index finger\'s lowest section.', opts:[['long','Long'],['average','Average'],['short','Short']]},
   {id:'thumbAngle', label:'Thumb spread', opts:[['wide','Opens wide from the hand'],['narrow','Stays close to the hand']]}]},
- {id:'mounts', title:'Mounts', hi:'पर्वत', sub:'Fleshy pads of the palm', hl:['venus','luna','jupiter'], qs:[
-  {id:'venus', label:'Venus mount (base of the thumb)', hi:'शुक्र पर्वत', opts:[['full','Full and soft'],['flat','Flat']]},
-  {id:'luna', label:'Moon mount (outer edge, near the wrist)', hi:'चंद्र पर्वत', opts:[['full','Full'],['flat','Flat']]},
-  {id:'jupiter', label:'Jupiter mount (below the index finger)', hi:'गुरु पर्वत', opts:[['full','Raised'],['flat','Flat']]}]},
- {id:'marks', title:'Minor lines', hi:'छोटी रेखाएँ', sub:'Check the edge below your little finger and the outer palm', hl:['marriage','travel','triangle'], qs:[
+ {id:'mounts', title:'Mounts', hi:'Monts', sub:'Fleshy pads of the palm', hl:['venus','luna','jupiter'], qs:[
+  {id:'venus', label:'Venus mount (base of the thumb)', hi:'Mont de Vénus', opts:[['full','Full and soft'],['flat','Flat']]},
+  {id:'luna', label:'Moon mount (outer edge, near the wrist)', hi:'Mont de la Lune', opts:[['full','Full'],['flat','Flat']]},
+  {id:'jupiter', label:'Jupiter mount (below the index finger)', hi:'Mont de Jupiter', opts:[['full','Raised'],['flat','Flat']]}]},
+ {id:'marks', title:'Minor lines', hi:'Lignes secondaires', sub:'Check the edge below your little finger and the outer palm', hl:['marriage','travel','triangle'], qs:[
   {id:'marriage', label:'Marriage lines (short lines on the edge below the little finger)', opts:[['none','None clear'],['one','One clear line'],['two','Two'],['several','Several faint']]},
   {id:'marriagePos', label:'Where the clearest one sits', showIf:f=>f.marriage&&f.marriage.v!=='none', opts:[['early','Close to the heart line'],['middle','Midway'],['late','Close to the little finger']]},
   {id:'travel', label:'Travel lines (short horizontals on the outer palm edge)', opts:[['many','Several'],['few','One or two'],['none','None']]},
@@ -348,7 +348,7 @@ function area(F){
   return c;
 }
 const CATS = [
- {key:'personality', name:'Personality', hi:'स्वभाव', run(F){
+ {key:'personality', name:'Personality', hi:'Caractère', run(F){
    const c=area(F); const H={
      earth:['Grounded and dependable','Yours is an Earth hand. You trust what you can see and touch, you finish what you start, and people lean on you because you stay steady when things get messy.',.8],
      air:['Curious and quick-minded','Yours is an Air hand. You think in ideas and conversations, routine bores you, and you are at your best when you can learn, talk and connect.',.8],
@@ -358,7 +358,7 @@ const CATS = [
    c.add('thumbAngle',{wide:['You are generous and open to new people and ideas.',.85],narrow:['You are careful about whom you let in, and loyal once you do.',.7]},'Thumb',['thumb']);
    c.add('indexVsRing',{longer:['You like to set your own direction.',.85],equal:['You balance self-belief with fairness to others.',.8],shorter:['You lead with charm and creativity more than control.',.75]},'Fingers',['index','ring']);
    c.headline=v?H[v][0]:null; return c;}},
- {key:'love', name:'Love & Emotions', hi:'प्रेम', run(F){
+ {key:'love', name:'Love & Emotions', hi:'Amour', run(F){
    const c=area(F); const H={jupiter:'An idealist in love',between:'Caring and balanced in love',saturn:'Careful with your heart'};
    const v=c.add('heartEnd',{
      jupiter:['Your heart line reaches toward the index finger. You love with high hopes and real devotion, and you look for a partner you can admire.',.9],
@@ -369,7 +369,7 @@ const CATS = [
    c.add('heartMarks',{clear:['A clean line suggests a steady emotional life.',.85],branches:['Small rising branches are read as happy, fulfilling relationships.',.95],broken:['Breaks along the line mark a past heartbreak that has made you wiser about what you need.',.5]},'Heart line',['heart']);
    c.add('venus',{full:['A full Venus mount at the base of your thumb adds warmth, affection and a love of comfort and beauty.',.9],flat:['A flatter Venus mount shows you are self-contained and choosy about closeness.',.6]},'Venus mount',['venus']);
    c.headline=v?H[v]:null; return c;}},
- {key:'marriage', name:'Marriage & Family', hi:'विवाह', run(F){
+ {key:'marriage', name:'Marriage & Family', hi:'Mariage', run(F){
    const c=area(F); const H={none:'Love on your own terms',one:'One deep, lasting bond',two:'Two important bonds',several:'A heart that connects easily'};
    const v=c.add('marriage',{
      none:['No clear marriage lines show on the edge of your palm. Palmists read this as a woman who does not define herself by a relationship; commitment comes when it truly fits.',.6],
@@ -380,47 +380,47 @@ const CATS = [
    c.add('heartEnd',{jupiter:['Your heart line adds loyalty and high standards for a partner.',.85],between:['Your heart line adds a caring, give-and-take nature at home.',.9],saturn:['Your heart line says stability and trust matter more to you than grand gestures.',.7]},'Heart line',['heart']);
    c.add('venus',{full:['A full Venus mount points to a warm, welcoming family life.',.9],flat:['A flatter Venus mount suggests you value your own space even within family.',.6]},'Venus mount',['venus']);
    c.headline=v?H[v]:null; return c;}},
- {key:'mind', name:'Mind & Intellect', hi:'बुद्धि', run(F){
+ {key:'mind', name:'Mind & Intellect', hi:'Esprit', run(F){
    const c=area(F); const H={straight:'Logical and clear-headed',sloping:'An imaginative, creative mind'};
    const v=c.add('headShape',{straight:['Your head line runs fairly straight. You think in facts and steps, and people trust your practical judgement.',.85],sloping:['Your head line slopes toward the Moon mount. You think in pictures and feelings, and your best ideas arrive sideways.',.85]},'Head line',['head'],2);
    c.add('headLength',{long:['A long line shows wide interests; you like to understand things fully before you decide.',.85],medium:['A medium-length line shows balanced thinking: thorough enough, quick enough.',.8],short:['A shorter line shows a focused, decisive mind that gets to the point.',.75]},'Head line',['head']);
    c.add('headStart',{joined:['It begins joined to your life line: you are thoughtful and careful, and family values shaped how you decide.',.7],separate:['It starts apart from your life line: you thought for yourself early and are comfortable taking risks.',.85]},'Head line',['head','life']);
    c.add('headFork',{yes:['A fork at the end, the "writer\'s fork", means you see both sides and express ideas well.',.95]},'Head line',['head']);
    c.headline=v?H[v]:null; return c;}},
- {key:'vitality', name:'Vitality & Energy', hi:'ऊर्जा', caveat:'The life line describes energy and change, never how long you will live.', run(F){
+ {key:'vitality', name:'Vitality & Energy', hi:'Énergie', caveat:'The life line describes energy and change, never how long you will live.', run(F){
    const c=area(F); const H={wide:'Big energy, big appetite for life',close:'Steady, well-paced energy'};
    const v=c.add('lifeArc',{wide:['Your life line sweeps wide around the thumb. You have stamina, enthusiasm and a love of new experiences.',.9],close:['Your life line stays close to the thumb. You pace yourself, prefer the familiar and recharge best at home.',.65]},'Life line',['life'],2);
    c.add('lifeDepth',{deep:['A deep, clear line shows strong vitality and resilience.',.95],faint:['A fainter line is read as energy that needs looking after: rest, routine and people who lift you up.',.55]},'Life line',['life']);
    c.add('lifeBreak',{none:['An unbroken line suggests a steady, continuous rhythm to your life.',.85],break:['A break in the line marks a major change in lifestyle or direction: a turning point, not an ending.',.6]},'Life line',['life']);
    c.add('venus',{full:['A full Venus mount adds physical warmth and zest.',.85]},'Venus mount',['venus']);
    c.headline=v?H[v]:null; return c;}},
- {key:'career', name:'Career & Life Path', hi:'कर्म', run(F){
+ {key:'career', name:'Career & Life Path', hi:'Carrière', run(F){
    const c=area(F); const H={strong:'A clear sense of purpose',faint:'A path you shape as you go',absent:'A self-made path'};
    const v=c.add('fate',{strong:['Your fate line is strong and clear. You know what you are working toward and you build steadily.',.9],faint:['Your fate line is faint. Your career follows your interests more than a fixed plan, and flexibility is your strength.',.65],absent:['No clear fate line shows. Palmists read this as freedom from convention: you choose your own direction and may change it more than once.',.6]},'Fate line',['fate'],2);
    c.add('fateStart',{wrist:['It starts at the wrist, a sign you found your direction early.',.85],life:['It rises from your life line: your success comes through your own effort, often with family behind you.',.8],luna:['It starts from the Moon mount: other people, the public or a partner play a big part in your success.',.8]},'Fate line',['fate']);
    c.add('headShape',{straight:['Your straight head line suits structured work such as finance, law, science or management.',.8],sloping:['Your sloping head line suits creative and people-facing work such as design, writing, teaching or healing.',.8]},'Head line',['head']);
    c.headline=v?H[v]:null; return c;}},
- {key:'wealth', name:'Wealth & Fortune', hi:'धन', run(F){
+ {key:'wealth', name:'Wealth & Fortune', hi:'Argent', run(F){
    const c=area(F); const H={closed:'Money that stays with you',open:'A good earner and a generous spender',none:'Wealth through your own effort'};
    const v=c.add('triangle',{closed:['The lines in the centre of your palm form a closed triangle, the classic Hast Rekha sign of wealth that builds and stays.',.95],open:['Your money triangle is open on one side: you can earn well, but money flows out easily. Saving on purpose turns this around.',.6],none:['No clear money triangle shows. Your finances follow your work and choices more than luck.',.55]},'Money triangle',['triangle'],2);
    c.add('sun',{present:['A sun line adds rewards that come through reputation and recognition.',.9]},'Sun line',['sun']);
    c.add('fate',{strong:['A strong fate line supports steady, growing income.',.85],absent:['Without a strong fate line, income often comes from more than one source.',.6]},'Fate line',['fate']);
    c.add('jupiter',{full:['A raised Jupiter mount brings gains through leadership.',.85]},'Jupiter mount',['jupiter']);
    c.headline=v?H[v]:null; return c;}},
- {key:'success', name:'Success & Creativity', hi:'यश', run(F){
+ {key:'success', name:'Success & Creativity', hi:'Succès', run(F){
    const c=area(F); const H={present:'Recognition comes your way',absent:'Quiet, well-earned success'};
    const v=c.add('sun',{present:['You have a clear sun line under the ring finger, read as talent that gets noticed and success that brings joy.',.95],absent:['No strong sun line shows. Your achievements come through steady effort and may be valued privately more than publicly.',.6]},'Sun line',['sun'],2);
    c.add('indexVsRing',{shorter:['Your ring finger is longer than your index: you are creative, comfortable with risk and you enjoy the spotlight.',.9],longer:['Your index finger is longer than your ring finger: success for you is about achievement and control more than applause.',.75],equal:['Equal index and ring fingers balance creativity with ambition.',.8]},'Fingers',['index','ring']);
    c.add('hand',{water:['Your Water hand gives you an eye for beauty and art.',.85],air:['Your Air hand gives you a way with words and ideas.',.8],fire:['Your Fire hand gives you the drive to put your work out into the world.',.8],earth:['Your Earth hand gives you craft and patience: you make things that last.',.7]},'Hand shape',['shape']);
    c.headline=v?H[v]:null; return c;}},
- {key:'leadership', name:'Leadership & Willpower', hi:'नेतृत्व', run(F){
+ {key:'leadership', name:'Leadership & Willpower', hi:'Leadership', run(F){
    const c=area(F); const H={long:'Strong will, steady hand',average:'Balanced willpower',short:'You lead with heart'};
    const v=c.add('thumbLength',{long:['Your thumb is long and strong, the palmist\'s sign of willpower and persistence. You finish what you start.',.95],average:['Your thumb is of average length: you push when it matters and let go when it doesn\'t.',.75],short:['A shorter thumb suggests you lead through feeling and inspiration more than force.',.6]},'Thumb',['thumb'],2);
    c.add('indexVsRing',{longer:['A longer index finger adds confidence and a natural pull toward leading.',.95],equal:['Balanced index and ring fingers show fair-minded leadership.',.8],shorter:['A shorter index finger suggests you prefer to guide people from beside them rather than above them.',.6]},'Fingers',['index','ring']);
    c.add('jupiter',{full:['A raised Jupiter mount shows ambition and pride in your work.',.9],flat:['A flatter Jupiter mount shows modesty; you rarely push for credit.',.6]},'Jupiter mount',['jupiter']);
    c.add('thumbAngle',{wide:['Your thumb opens wide, a sign of an independent, open mind.',.85],narrow:['Your thumb sits close to your hand: you are cautious and keep your plans to yourself.',.6]},'Thumb',['thumb']);
    c.headline=v?H[v]:null; return c;}},
- {key:'intuition', name:'Intuition & Travel', hi:'यात्रा', run(F){
+ {key:'intuition', name:'Intuition & Travel', hi:'Voyage', run(F){
    const c=area(F); const H={full:'Strong intuition, a restless spirit',flat:'Practical instincts, deep roots'};
    const v=c.add('luna',{full:['A full Moon mount on the outer edge of your palm shows imagination, intuition and a pull toward faraway places.',.9],flat:['A flatter Moon mount shows you trust facts over hunches, and you love your roots.',.6]},'Moon mount',['luna'],2);
    c.add('travel',{many:['Several travel lines on the palm\'s edge point to many journeys; a deep one can mean living abroad for a while.',.9],few:['One or two travel lines point to a few meaningful journeys.',.75],none:['Few travel lines suggest home is where you thrive; trips are for joy rather than escape.',.5]},'Travel lines',['travel']);
@@ -483,7 +483,7 @@ function esc(s){return String(s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;',
 function go(screen){ if(S.screen==='about') saveAbout(); if(S.screen==='photo'&&screen!=='photo') stopCam(); S.screen=screen; render(); window.scrollTo({top:0}); }
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2800)}
 function bar(html){ if(!html){$bar.hidden=true;$barIn.innerHTML='';return;} $barIn.innerHTML=html; $bar.hidden=false; }
-function topbar(back){ return `<div class="topbar"><div class="wordmark">Palm Reading <span class="hi">हस्तरेखा</span></div>${back?`<button class="linkbtn" data-go="${back}">← Back</button>`:''}</div>`; }
+function topbar(back){ return `<div class="topbar"><div class="wordmark">Palm Reading <span class="hi">Chiromancie</span></div>${back?`<button class="linkbtn" data-go="${back}">← Back</button>`:''}</div>`; }
 const LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 
 /* ---------- Home ---------- */
@@ -861,18 +861,18 @@ const MARRIAGE_BY_STATUS = {
 
 /* ---------- About you: star sign and birth number ---------- */
 const ZODIAC = [ // [name, hindi, start month, start day, element, line]
-  ['Capricorn','मकर',12,22,'earth','Ambitious, patient and quietly determined.'],
-  ['Aquarius','कुंभ',1,20,'air','Original, independent and a little rebellious.'],
-  ['Pisces','मीन',2,19,'water','Dreamy, empathetic and deeply creative.'],
-  ['Aries','मेष',3,21,'fire','Brave, direct and always first to act.'],
-  ['Taurus','वृषभ',4,20,'earth','Loyal, sensual and steady as a rock.'],
-  ['Gemini','मिथुन',5,21,'air','Witty, curious and endlessly adaptable.'],
-  ['Cancer','कर्क',6,21,'water','Protective, intuitive and family-first.'],
-  ['Leo','सिंह',7,23,'fire','Warm, generous and born to shine.'],
-  ['Virgo','कन्या',8,23,'earth','Precise, helpful and quietly brilliant.'],
-  ['Libra','तुला',9,23,'air','Charming, fair and drawn to beauty.'],
-  ['Scorpio','वृश्चिक',10,23,'water','Intense, magnetic and fiercely loyal.'],
-  ['Sagittarius','धनु',11,22,'fire','Free-spirited, optimistic and adventurous.']
+  ['Capricorn','Capricorne',12,22,'earth','Ambitious, patient and quietly determined.'],
+  ['Aquarius','Verseau',1,20,'air','Original, independent and a little rebellious.'],
+  ['Pisces','Poissons',2,19,'water','Dreamy, empathetic and deeply creative.'],
+  ['Aries','Bélier',3,21,'fire','Brave, direct and always first to act.'],
+  ['Taurus','Taureau',4,20,'earth','Loyal, sensual and steady as a rock.'],
+  ['Gemini','Gémeaux',5,21,'air','Witty, curious and endlessly adaptable.'],
+  ['Cancer','Cancer',6,21,'water','Protective, intuitive and family-first.'],
+  ['Leo','Lion',7,23,'fire','Warm, generous and born to shine.'],
+  ['Virgo','Vierge',8,23,'earth','Precise, helpful and quietly brilliant.'],
+  ['Libra','Balance',9,23,'air','Charming, fair and drawn to beauty.'],
+  ['Scorpio','Scorpion',10,23,'water','Intense, magnetic and fiercely loyal.'],
+  ['Sagittarius','Sagittaire',11,22,'fire','Free-spirited, optimistic and adventurous.']
 ];
 function sunSign(m,d){ // m 1-12
   let sign=ZODIAC[0];
@@ -930,7 +930,7 @@ function traitProfile(F, sign, num, rashi, qt){
   return Object.entries(t).map(([k,v])=>({k,label:TRAITS[k],v,pct:Math.round(100*v/max)})).sort((a,b)=>b.v-a.v);
 }
 
-const FOCUS = {love:['Love','प्रेम',['love','marriage']],career:['Career','कर्म',['career','leadership']],money:['Money','धन',['wealth','success']],family:['Family','परिवार',['marriage','love']],energy:['Health & energy','ऊर्जा',['vitality','personality']],growth:['Self-growth','आत्म-विकास',['mind','intuition']]};
+const FOCUS = {love:['Love','Amour',['love','marriage']],career:['Career','Carrière',['career','leadership']],money:['Money','Argent',['wealth','success']],family:['Family','Famille',['marriage','love']],energy:['Health & energy','Énergie',['vitality','personality']],growth:['Self-growth','Épanouissement',['mind','intuition']]};
 const FOCUS_TIP = {
   love:{fire:'Say what you feel first; your boldness is attractive.',earth:'Show love through actions; that’s your language.',air:'Keep it playful; you fall for minds before faces.',water:'Trust your gut about people; it’s rarely wrong.'},
   career:{fire:'Choose work where you can lead and move fast.',earth:'Build slowly; your patience compounds.',air:'Roles with people and ideas suit you best.',water:'Creative or caring work will feel like purpose.'},
@@ -950,23 +950,23 @@ function HW(){ return S.mode==='right' ? 'right' : 'left'; }
    a degree), made sidereal with the Lahiri ayanamsa used in Indian astrology.
    Birth time is taken as Indian Standard Time; without it we check the whole day. */
 const RASHI = [
-  ['Mesha','मेष','fire','Fearless, quick to act and full of fire.'],['Vrishabha','वृषभ','earth','Calm, loyal and fond of life’s comforts.'],
-  ['Mithuna','मिथुन','air','Chatty, clever and always curious.'],['Karka','कर्क','water','Caring, emotional and deeply protective.'],
-  ['Simha','सिंह','fire','Proud, generous and born to lead.'],['Kanya','कन्या','earth','Careful, kind and quietly perfectionist.'],
-  ['Tula','तुला','air','Graceful, fair and a natural diplomat.'],['Vrishchika','वृश्चिक','water','Intense, private and deeply loyal.'],
-  ['Dhanu','धनु','fire','Honest, optimistic and a born explorer.'],['Makara','मकर','earth','Disciplined, ambitious and patient.'],
-  ['Kumbha','कुंभ','air','Independent, humane and ahead of the times.'],['Meena','मीन','water','Gentle, dreamy and spiritually inclined.']
+  ['Mesha','Bélier','fire','Fearless, quick to act and full of fire.'],['Vrishabha','Taureau','earth','Calm, loyal and fond of life’s comforts.'],
+  ['Mithuna','Gémeaux','air','Chatty, clever and always curious.'],['Karka','Cancer','water','Caring, emotional and deeply protective.'],
+  ['Simha','Lion','fire','Proud, generous and born to lead.'],['Kanya','Vierge','earth','Careful, kind and quietly perfectionist.'],
+  ['Tula','Balance','air','Graceful, fair and a natural diplomat.'],['Vrishchika','Scorpion','water','Intense, private and deeply loyal.'],
+  ['Dhanu','Sagittaire','fire','Honest, optimistic and a born explorer.'],['Makara','Capricorne','earth','Disciplined, ambitious and patient.'],
+  ['Kumbha','Verseau','air','Independent, humane and ahead of the times.'],['Meena','Poissons','water','Gentle, dreamy and spiritually inclined.']
 ];
 const NAKSHATRA = [
-  ['Ashwini','अश्विनी','energetic and quick to heal'],['Bharani','भरणी','strong-willed and creative'],['Krittika','कृत्तिका','sharp and determined'],
-  ['Rohini','रोहिणी','charming and artistic'],['Mrigashira','मृगशिरा','a curious, gentle seeker'],['Ardra','आर्द्रा','an intense thinker'],
-  ['Punarvasu','पुनर्वसु','optimistic and nurturing'],['Pushya','पुष्य','caring and dependable'],['Ashlesha','आश्लेषा','perceptive and magnetic'],
-  ['Magha','मघा','regal and proud of her roots'],['Purva Phalguni','पूर्वा फाल्गुनी','fun-loving and warm'],['Uttara Phalguni','उत्तरा फाल्गुनी','generous and loyal'],
-  ['Hasta','हस्त','skilful and witty'],['Chitra','चित्रा','stylish and creative'],['Swati','स्वाति','independent and flexible'],
-  ['Vishakha','विशाखा','goal-driven and passionate'],['Anuradha','अनुराधा','devoted and friendly'],['Jyeshtha','ज्येष्ठा','protective and wise'],
-  ['Mula','मूल','bold and truth-seeking'],['Purva Ashadha','पूर्वाषाढ़ा','confident and persuasive'],['Uttara Ashadha','उत्तराषाढ़ा','principled and enduring'],
-  ['Shravana','श्रवण','a great listener'],['Dhanishta','धनिष्ठा','musical and prosperous'],['Shatabhisha','शतभिषा','an independent healer'],
-  ['Purva Bhadrapada','पूर्वभाद्रपद','idealistic and intense'],['Uttara Bhadrapada','उत्तरभाद्रपद','calm and wise'],['Revati','रेवती','gentle and compassionate']
+  ['Ashwini','Ashwini','energetic and quick to heal'],['Bharani','Bharani','strong-willed and creative'],['Krittika','Krittika','sharp and determined'],
+  ['Rohini','Rohini','charming and artistic'],['Mrigashira','Mrigashira','a curious, gentle seeker'],['Ardra','Ardra','an intense thinker'],
+  ['Punarvasu','Punarvasu','optimistic and nurturing'],['Pushya','Pushya','caring and dependable'],['Ashlesha','Ashlesha','perceptive and magnetic'],
+  ['Magha','Magha','regal and proud of her roots'],['Purva Phalguni','Purva Phalguni','fun-loving and warm'],['Uttara Phalguni','Uttara Phalguni','generous and loyal'],
+  ['Hasta','Hasta','skilful and witty'],['Chitra','Chitra','stylish and creative'],['Swati','Swati','independent and flexible'],
+  ['Vishakha','Vishakha','goal-driven and passionate'],['Anuradha','Anuradha','devoted and friendly'],['Jyeshtha','Jyeshtha','protective and wise'],
+  ['Mula','Mula','bold and truth-seeking'],['Purva Ashadha','Purva Ashadha','confident and persuasive'],['Uttara Ashadha','Uttara Ashadha','principled and enduring'],
+  ['Shravana','Shravana','a great listener'],['Dhanishta','Dhanishta','musical and prosperous'],['Shatabhisha','Shatabhisha','an independent healer'],
+  ['Purva Bhadrapada','Purva Bhadrapada','idealistic and intense'],['Uttara Bhadrapada','Uttara Bhadrapada','calm and wise'],['Revati','Revati','gentle and compassionate']
 ];
 function julianDay(y,m,d,hours){ if(m<=2){y-=1;m+=12;} const A=Math.floor(y/100), B=2-A+Math.floor(A/4); return Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d+B-1524.5+hours/24; }
 function moonTropical(jd){
