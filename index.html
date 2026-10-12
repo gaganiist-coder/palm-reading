@@ -172,6 +172,25 @@ textarea.copybox{width:100%;min-height:140px;font:inherit;font-size:.85rem;borde
 .zoom button{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:16px}
 .rate{background:var(--surface);border:1px solid var(--rule);border-radius:18px;padding:16px;display:grid;gap:10px}
 
+.cam .guide text{fill:#fff;font:800 22px Mulish,system-ui,sans-serif;letter-spacing:.2em;opacity:.8;transform-box:fill-box;transform-origin:center}
+.cam.mirror video,.cam.mirror .guide svg{transform:scaleX(-1)}
+.cam.mirror .guide text{transform:scaleX(-1)}
+.cam.wrong .guide path,.cam.wrong .guide rect{stroke:#ec5f8a;stroke-dasharray:none;opacity:1}
+.qlist{display:grid;gap:12px}
+.qcard{background:var(--surface);border:1px solid var(--rule);border-radius:18px;padding:14px;display:grid;grid-template-columns:56px minmax(0,1fr);gap:12px;align-items:start}
+.qcard.needs{border-color:color-mix(in srgb,var(--accent) 55%,var(--rule))}
+.qcard .g-art svg{width:56px;height:auto;display:block}
+.qc-main{display:grid;gap:8px;min-width:0}
+.qc-main .label{font-size:.68rem}
+.qc-main .label .hi{letter-spacing:0;text-transform:none;font-size:.8rem;font-weight:400}
+.qc-label{font-size:.98rem;line-height:1.35}
+.qc-main .help{font-size:.82rem;color:var(--muted)}
+details.rest{border:1px solid var(--rule);border-radius:18px;background:var(--sunk)}
+details.rest>summary{list-style:none;cursor:pointer;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+details.rest>summary::-webkit-details-marker{display:none}
+details.rest[open]>summary .chev{transform:rotate(180deg)}
+details.rest .chev{transition:transform .2s;color:var(--plum);font-size:1.1rem}
+details.rest>.qlist{padding:0 12px 12px}
 </style>
 </head>
 <body>
@@ -374,9 +393,25 @@ const SAMPLE = {hand:'water',heartEnd:'between',heartCurve:'curved',heartLength:
 const MP_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
 const MP_WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
 const MP_MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
-const S = { screen:'home', photoUrl:null, features:{}, source:'manual', isSample:false, rating:0, lastText:'' };
-const CAM = { stream:null, raf:0, steady:0, last:null, phase:'idle', lastT:0 };
+const CHECK_BELOW = 0.6;   // answers below this confidence are shown for the user to verify
+const S = { screen:'home', photoUrl:null, features:{}, source:'manual', isSample:false, rating:0, lastText:'', checkIds:null, stillSide:null };
+const CAM = { stream:null, raf:0, steady:0, last:null, phase:'idle', lastT:0, mirrored:false };
 let landmarker = null, mpState = 'idle'; // idle | loading | ready | failed
+
+/* Most common answer for each question: used when nothing better is known */
+const PRIORS = {
+  hand:['earth',.3], heartEnd:['between',.35], heartCurve:['curved',.4], heartLength:['long',.4], heartMarks:['clear',.35],
+  headShape:['sloping',.35], headLength:['medium',.35], headStart:['joined',.45], headFork:['no',.45],
+  lifeArc:['wide',.4], lifeDepth:['deep',.4], lifeBreak:['none',.45],
+  fate:['faint',.35], fateStart:['wrist',.3], sun:['absent',.4],
+  indexVsRing:['equal',.35], thumbLength:['average',.45], thumbAngle:['wide',.4],
+  venus:['full',.4], luna:['full',.35], jupiter:['flat',.35],
+  marriage:['one',.35], marriagePos:['middle',.35], travel:['few',.4], triangle:['open',.35]
+};
+function pToC(p){ return p>=0.75?'high':(p>=0.5?'medium':'low'); }
+function feat(v,p,extra){ return Object.assign({v,p,c:pToC(p),ai:true},extra||{}); }
+function priorFeatures(){ const F={}; for (const [k,[v,p]] of Object.entries(PRIORS)) F[k]=feat(v,p,{prior:true}); return F; }
+const QGROUP = {}; GROUPS.forEach(g=>g.qs.forEach(q=>QGROUP[q.id]=g));
 
 async function loadMP(){
   if (mpState!=='idle') return;
@@ -394,7 +429,7 @@ async function loadMP(){
 const $app=document.getElementById('app'), $bar=document.getElementById('bar'), $barIn=document.getElementById('barInner');
 function esc(s){return String(s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]))}
 function go(screen){ if(S.screen==='photo'&&screen!=='photo') stopCam(); S.screen=screen; render(); window.scrollTo({top:0}); }
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2600)}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2800)}
 function bar(html){ if(!html){$bar.hidden=true;$barIn.innerHTML='';return;} $barIn.innerHTML=html; $bar.hidden=false; }
 function topbar(back){ return `<div class="topbar"><div class="wordmark">Palm Reading <span class="hi">हस्तरेखा</span></div>${back?`<button class="linkbtn" data-go="${back}">← Back</button>`:''}</div>`; }
 const LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
@@ -407,7 +442,7 @@ function renderHome(){
       <div class="stack" style="gap:12px">
         <span class="label">Left palm · 10 areas of your life</span>
         <h1>What your left hand says about you</h1>
-        <p class="lede">Hold your left palm up to the camera. We measure its shape and fingers, help you read its lines, then walk you through love, mind, career, money and more.</p>
+        <p class="lede">Hold your <strong>left</strong> palm up to the camera. We measure its shape, fingers and lines, then walk you through love, mind, career, money and more.</p>
       </div>
       <div class="hero-art">${palmSVG([], {labels:true, aria:'Left palm showing the heart, head, life and fate lines'})}</div>
     </div>
@@ -424,7 +459,7 @@ function renderHome(){
 function guideSVG(){
   const palmPath='M62 182 Q62 172 74 172 L214 172 Q231 175 233 200 L236 300 Q236 352 198 376 L108 376 Q70 362 64 300 Z';
   const fingers = Object.values(FINGERS).map(([x,y,w,h])=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="15"/>`).join('');
-  return `<svg viewBox="40 30 240 352" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="${palmPath}"/>${fingers}<rect x="226" y="196" width="36" height="112" rx="18" transform="rotate(28 244 300)"/></svg>`;
+  return `<svg viewBox="40 30 240 352" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="${palmPath}"/>${fingers}<rect x="226" y="196" width="36" height="112" rx="18" transform="rotate(28 244 300)"/><text x="148" y="290" text-anchor="middle">LEFT</text></svg>`;
 }
 function renderPhoto(){
   const hasCam = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
@@ -432,7 +467,7 @@ function renderPhoto(){
   <section class="stack">
     <span class="label">Step 1 of 3 · Photo</span>
     <h2>Show your left palm</h2>
-    <p class="muted">Palm facing the camera, fingers slightly apart, in soft daylight. Hold the phone in your right hand and fit your hand inside the outline.</p>
+    <p class="muted">Hold the phone in your <strong>right</strong> hand. Open your <strong>left</strong> palm under the camera, fingers pointing up the screen and slightly apart, thumb on the right. Soft daylight works best.</p>
     <div class="cam" id="cam">
       <video id="vid" playsinline muted autoplay></video>
       <img class="still" id="still" alt="Your left palm photo" hidden>
@@ -464,8 +499,12 @@ async function startCam(){
     CAM.stream = await navigator.mediaDevices.getUserMedia({ audio:false, video:{ facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1440} } });
     if (S.screen!=='photo'){ stopCam(); return; }
     const v=document.getElementById('vid'); v.srcObject=CAM.stream; await v.play().catch(()=>{});
+    // A front (selfie) camera is shown mirrored, like a mirror, so the outline flips with it
+    const st = CAM.stream.getVideoTracks()[0].getSettings ? CAM.stream.getVideoTracks()[0].getSettings() : {};
+    CAM.mirrored = st.facingMode==='user';
+    document.getElementById('cam').classList.toggle('mirror', CAM.mirrored);
     CAM.steady=0; CAM.last=null; CAM.phase='live';
-    setPill('Fit your palm inside the outline');
+    setPill('Fit your left palm inside the outline');
     loop();
   }catch(e){
     const denied = e && (e.name==='NotAllowedError' || e.name==='SecurityError');
@@ -477,34 +516,41 @@ function stopCam(){
   cancelAnimationFrame(CAM.raf); CAM.phase='idle';
   if (CAM.stream){ CAM.stream.getTracks().forEach(t=>t.stop()); CAM.stream=null; }
 }
+/* Which hand is it? With the palm facing the camera, a left hand has the index knuckle
+   clockwise from the little-finger knuckle around the wrist. Works at any rotation. */
+function handSide(lm){
+  const w=lm[0], i=lm[5], p=lm[17];
+  const cross=(i.x-w.x)*(p.y-w.y)-(i.y-w.y)*(p.x-w.x);
+  return cross<0 ? 'left' : 'right';
+}
 function loop(){
   if (CAM.phase!=='live') return;
   CAM.raf = requestAnimationFrame(loop);
   const now = performance.now(); if (now-CAM.lastT < 90) return; CAM.lastT = now;
   const v=document.getElementById('vid'); if(!v || v.readyState<2) return;
   const cam=document.getElementById('cam'), hold=document.getElementById('hold');
-  if (mpState!=='ready'){ setPill(mpState==='failed'?'Line up your palm, then tap the button':'Line up your palm…'); return; }
+  if (mpState!=='ready'){ setPill(mpState==='failed'?'Line up your left palm, then tap the button':'Line up your left palm…'); return; }
   let res; try{ res = landmarker.detectForVideo(v, now); }catch(e){ return; }
   const lm = res && res.landmarks && res.landmarks[0];
   if (!lm){ CAM.steady=0; cam.classList.remove('ready'); hold.style.width='0'; setPill('Show your left palm inside the outline'); return; }
-  // map to displayed (object-fit: cover) coordinates
   const vw=v.videoWidth, vh=v.videoHeight, bw=cam.clientWidth, bh=cam.clientHeight;
   const sc=Math.max(bw/vw,bh/vh), ox=(vw*sc-bw)/2, oy=(vh*sc-bh)/2;
   const P=lm.map(p=>({x:(p.x*vw*sc-ox)/bw, y:(p.y*vh*sc-oy)/bh}));
   const ys=P.map(p=>p.y), xs=P.map(p=>p.x);
-  const top=Math.min(...ys), bot=Math.max(...ys), lft=Math.min(...xs), rgt=Math.max(...xs);
-  const hgt=bot-top;
+  const y0=Math.min(...ys), y1=Math.max(...ys), x0=Math.min(...xs), x1=Math.max(...xs);
   const spread = angleDeg(sub(P[8],P[5]), sub(P[20],P[17]));
   let msg='', ok=false;
-  if (lft<0.01||rgt>0.99||top<0.01||bot>0.995) msg='Move back a little';
-  else if (hgt<0.55) msg='Move a little closer';
-  else if (P[12].y > P[0].y) msg='Turn your hand fingers-up';
+  if (handSide(lm)==='right') msg='That’s your right hand. Show your left palm';
+  else if (x0<0.01||x1>0.99||y0<0.01||y1>0.995) msg='Move back a little';
+  else if (y1-y0<0.55) msg='Move a little closer';
+  else if (P[12].y > P[0].y) msg='Point your fingers up the screen';
   else if (spread<4) msg='Spread your fingers slightly';
   else ok=true;
   const c=P[9], move = CAM.last ? Math.hypot(c.x-CAM.last.x, c.y-CAM.last.y) : 1;
   CAM.last={x:c.x,y:c.y};
   if (ok && move<0.012) CAM.steady++; else if (ok) CAM.steady=Math.max(0,CAM.steady-2); else CAM.steady=0;
   cam.classList.toggle('ready', ok);
+  cam.classList.toggle('wrong', msg.startsWith('That’s your right'));
   const need=12; hold.style.width = Math.min(100,100*CAM.steady/need)+'%';
   setPill(ok ? (CAM.steady>2?'Hold still…':'Looks good, hold still') : msg);
   if (CAM.steady>=need) capture();
@@ -520,9 +566,10 @@ function capture(){
 }
 function showStill(url){
   if (S.photoUrl && S.photoUrl!==url) URL.revokeObjectURL(S.photoUrl);
-  S.photoUrl=url;
+  S.photoUrl=url; S.stillSide=null;
   const img=document.getElementById('still'), v=document.getElementById('vid');
   if (!img) return;
+  document.getElementById('cam').classList.remove('mirror','wrong','ready');
   img.src=url; img.hidden=false; if(v) v.hidden=true;
   document.getElementById('guide').hidden=true; document.getElementById('hold').style.width='0';
   setPill('Is the palm sharp and well lit?');
@@ -530,81 +577,215 @@ function showStill(url){
   bar(`<button class="btn" data-act="retake">Retake</button><button class="btn primary" data-act="usephoto">Use this photo</button>`);
 }
 
-/* ---------- Measure hand from the still photo ---------- */
+/* ---------- Geometry helpers ---------- */
 function sub(a,b){return {x:a.x-b.x,y:a.y-b.y}}
+function add(a,b){return {x:a.x+b.x,y:a.y+b.y}}
+function mul(a,k){return {x:a.x*k,y:a.y*k}}
+function lerp(a,b,t){return {x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t}}
 function len(a){return Math.hypot(a.x,a.y)}
 function dist(a,b){return len(sub(a,b))}
 function angleDeg(a,b){const d=(a.x*b.x+a.y*b.y)/(len(a)*len(b)||1);return Math.acos(Math.max(-1,Math.min(1,d)))*180/Math.PI}
 function chainLen(P,ids){let s=0;for(let i=1;i<ids.length;i++)s+=dist(P[ids[i-1]],P[ids[i]]);return s}
-function measure(lm,w,h){
-  const P=lm.map(p=>({x:p.x*w,y:p.y*h}));
-  const palmLen=dist(P[0],P[9]), palmW=dist(P[5],P[17]);
-  const midLen=chainLen(P,[9,10,11,12]);
-  const longPalm = palmLen/palmW > 1.42, longFingers = midLen/palmLen >= 0.86;
-  const hand = longPalm ? (longFingers?'water':'fire') : (longFingers?'air':'earth');
-  const idx=chainLen(P,[5,6,7,8]), ring=chainLen(P,[13,14,15,16]), r=idx/ring;
-  const ivr = r>1.025?'longer':(r<0.975?'shorter':'equal');
-  const ta = angleDeg(sub(P[4],P[2]), sub(P[8],P[5]));
-  const thumbAngle = ta>=48?'wide':'narrow';
-  const near=(x,t,band)=>Math.abs(x-t)<band;
-  return {
-    hand:{v:hand,c:(near(palmLen/palmW,1.42,.05)||near(midLen/palmLen,.86,.03))?'low':'medium',ai:true},
-    indexVsRing:{v:ivr,c:near(r,1,.04)?'low':'medium',ai:true},
-    thumbAngle:{v:thumbAngle,c:near(ta,48,6)?'low':'medium',ai:true}
-  };
+function clamp(x,a,b){return Math.max(a,Math.min(b,x))}
+function mean(a){return a.length?a.reduce((s,x)=>s+x,0)/a.length:0}
+/* pick the best-scoring option; confidence grows with the lead over the runner-up */
+function choose(scores, k=1.3, lo=.4, hi=.78){
+  const e=Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+  const lead = e.length>1 ? e[0][1]-e[1][1] : e[0][1];
+  return {v:e[0][0], p:clamp(.42+k*lead, lo, hi)};
 }
+/* threshold confidence: further from the cut-off = surer */
+function band(x, cut, k, lo=.4, hi=.8){ return clamp(.45+k*Math.abs(x-cut), lo, hi); }
+
+/* ---------- Hand shape and fingers (from landmarks) ---------- */
+function measureShape(P){
+  const F={};
+  const palmLen=dist(P[0],P[9]), palmW=dist(P[5],P[17]), midLen=chainLen(P,[9,10,11,12]);
+  const pr=palmLen/palmW, fr=midLen/palmLen;
+  const longPalm=pr>1.42, longFingers=fr>=.86;
+  F.hand=feat(longPalm?(longFingers?'water':'fire'):(longFingers?'air':'earth'), Math.min(band(pr,1.42,3), band(fr,.86,5)));
+  const r=chainLen(P,[5,6,7,8])/chainLen(P,[13,14,15,16]);
+  F.indexVsRing=feat(r>1.025?'longer':(r<.975?'shorter':'equal'), r>1.025||r<.975 ? band(r,r>1?1.025:.975,6,.5,.82) : .5);
+  const ta=angleDeg(sub(P[4],P[2]), sub(P[8],P[5]));
+  F.thumbAngle=feat(ta>=48?'wide':'narrow', band(ta,48,.025,.45,.82));
+  // thumb tip position along the index finger's lowest section (5→6)
+  const ax=sub(P[6],P[5]), t=((P[4].x-P[5].x)*ax.x+(P[4].y-P[5].y)*ax.y)/(ax.x*ax.x+ax.y*ax.y||1);
+  F.thumbLength=feat(t>.5?'long':(t<-.1?'short':'average'), t>.5?band(t,.5,.8,.45,.7):(t<-.1?band(t,-.1,.8,.45,.7):clamp(.45+.6*Math.min(.5-t,t+.1),.45,.65)));
+  return F;
+}
+
+/* ---------- Palm lines (from the photo) ----------
+   Builds a "crease map" (pixels darker than their surroundings), then scores the
+   classic positions of each line in a palm grid anchored to the hand landmarks:
+   a = 0 at the little-finger edge → 1 at the thumb side, b = 0 at the knuckles → 1 at the wrist. */
+function analyzeLines(img, lm){
+  const W=img.naturalWidth, H=img.naturalHeight;
+  const P0=lm.map(p=>({x:p.x*W,y:p.y*H}));
+  const pw=dist(P0[5],P0[17]); if (pw<40) return {};
+  const xs=P0.map(p=>p.x), ys=P0.map(p=>p.y), m=pw*.4;
+  const bx0=Math.max(0,Math.min(...xs)-m), by0=Math.max(0,Math.min(...ys)-m);
+  const bx1=Math.min(W,Math.max(...xs)+m), by1=Math.min(H,Math.max(...ys)+m);
+  let s=280/pw; if ((bx1-bx0)*(by1-by0)*s*s>1.4e6) s=Math.sqrt(1.4e6/((bx1-bx0)*(by1-by0)));
+  const cw=Math.round((bx1-bx0)*s), ch=Math.round((by1-by0)*s);
+  const cv=document.createElement('canvas'); cv.width=cw; cv.height=ch;
+  const ctx=cv.getContext('2d',{willReadFrequently:true}); ctx.drawImage(img,bx0,by0,bx1-bx0,by1-by0,0,0,cw,ch);
+  const px=ctx.getImageData(0,0,cw,ch).data;
+  const N=cw*ch, G=new Float32Array(N);
+  for (let i=0;i<N;i++) G[i]=.2*px[4*i]+.5*px[4*i+1]+.3*px[4*i+2];
+  // integral image → local mean
+  const I=new Float64Array((cw+1)*(ch+1));
+  for (let y=0;y<ch;y++){ let row=0; for (let x=0;x<cw;x++){ row+=G[y*cw+x]; I[(y+1)*(cw+1)+x+1]=I[y*(cw+1)+x+1]+row; } }
+  const r=Math.max(4,Math.round(pw*s*.035)), D=new Float32Array(N);
+  for (let y=0;y<ch;y++){ const ya=Math.max(0,y-r), yb=Math.min(ch,y+r+1);
+    for (let x=0;x<cw;x++){ const xa=Math.max(0,x-r), xb=Math.min(cw,x+r+1);
+      const sum=I[yb*(cw+1)+xb]-I[ya*(cw+1)+xb]-I[yb*(cw+1)+xa]+I[ya*(cw+1)+xa];
+      D[y*cw+x]=Math.max(0, sum/((yb-ya)*(xb-xa)) - G[y*cw+x]); } }
+  const P=P0.map(p=>({x:(p.x-bx0)*s,y:(p.y-by0)*s}));
+  const Wo=add(P[0], mul(sub(P[17],P[5]),.45));
+  const pt=(a,b)=>lerp(lerp(P[17],P[5],a), lerp(Wo,P[1],a), b);
+  const smax=(q)=>{ let best=0; const x0=Math.round(q.x), y0=Math.round(q.y);
+    for (let dy=-2;dy<=2;dy++) for (let dx=-2;dx<=2;dx++){ const x=x0+dx, y=y0+dy; if(x>=0&&y>=0&&x<cw&&y<ch){ const d=D[y*cw+x]; if(d>best) best=d; } } return best; };
+  // baseline: typical palm texture vs strong creases
+  const grid=[]; for (let a=.1;a<=.91;a+=.05) for (let b=.1;b<=.91;b+=.05) grid.push(smax(pt(a,b)));
+  grid.sort((x,y)=>x-y);
+  const base=grid[Math.floor(grid.length*.5)], top=grid[Math.floor(grid.length*.96)];
+  const scale=Math.max(1e-3, top-base);
+  const C=(q)=>(smax(q)-base)/scale;          // ~0 = plain skin, ~1 = strong crease
+  const curve=(pts,t)=>{ if(pts.length===2) return {a:pts[0].a+(pts[1].a-pts[0].a)*t, b:pts[0].b+(pts[1].b-pts[0].b)*t};
+    const u=1-t; return {a:u*u*pts[0].a+2*u*t*pts[1].a+t*t*pts[2].a, b:u*u*pts[0].b+2*u*t*pts[1].b+t*t*pts[2].b}; };
+  const prof=(pts,t0=0,t1=1,n=32)=>{ const o=[]; for(let i=0;i<=n;i++){ const c=curve(pts,t0+(t1-t0)*i/n); o.push(C(pt(c.a,c.b))); } return o; };
+  const sc=(pts,t0,t1)=>mean(prof(pts,t0,t1));
+  const gaps=(pr)=>{ let run=0, g=0; const a=Math.floor(pr.length*.15), b=Math.ceil(pr.length*.85); for(let i=a;i<b;i++){ if(pr[i]<.12){ run++; if(run===4) g++; } else run=0; } return g; };
+  const reach=(pr)=>{ const sm=pr.map((v,i)=>(v+(pr[i-1]??v)+(pr[i+1]??v))/3); let last=0; sm.forEach((v,i)=>{ if(v>.3) last=i; }); return last/(pr.length-1); };
+  const A=(a,b)=>({a,b}), F={};
+  const contrast=(top-base);   // image quality: how much creases stand out at all
+  const qcap = contrast<6 ? .5 : (contrast<10 ? .65 : .8);
+  const capP=(f)=>{ f.p=Math.min(f.p,qcap); f.c=pToC(f.p); return f; };
+
+  // Heart line: find its height on the little-finger side, then where it ends
+  let hb=.25, hbs=-9; for (let b=.08;b<=.42;b+=.02){ const v=sc([A(.02,b),A(.4,b-.01)]); if(v>hbs){hbs=v;hb=b;} }
+  const HV={ jupiter:[A(.02,hb),A(.55,hb+.02),A(.9,.04)], between:[A(.02,hb),A(.45,hb),A(.72,.02)], saturn:[A(.02,hb),A(.3,hb),A(.55,hb-.04)] };
+  // does the line carry on past the middle finger, and where does it finish?
+  const he=choose({ jupiter:sc(HV.jupiter,.6,1), between:sc(HV.between,.65,1), saturn:.3 });
+  const heartFull=prof(HV[he.v]); const heartM=mean(heartFull);
+  const hw = heartM<.15 ? .45 : 1;
+  F.heartEnd=capP(feat(he.v, Math.min(he.p, hw)));
+  const end=HV[he.v][2];
+  const hc=choose({curved:sc(HV[he.v],.3,1), straight:sc([A(.02,hb),A(end.a,hb)],.3,1)},1.2,.4,.72);
+  F.heartCurve=capP(feat(hc.v, Math.min(hc.p,hw)));
+  const hr=reach(heartFull); F.heartLength=capP(feat(hr>.7?'long':'short', Math.min(band(hr,.7,1.2,.4,.72),hw)));
+  F.heartMarks=capP(feat(gaps(heartFull)?'broken':'clear', .5));
+
+  // Head line: starts between thumb and index, runs straight or slopes toward the wrist
+  let sb=.32, sbs=-9, HD=null;
+  for (let b=.2;b<=.46;b+=.02){ const vs={ straight:[A(.97,b),A(.5,b+.05),A(.06,b+.1)], sloping:[A(.97,b),A(.5,b+.12),A(.15,b+.38)] };
+    const best=Math.max(sc(vs.straight),sc(vs.sloping)); if(best>sbs){sbs=best;sb=b;HD=vs;} }
+  const hs=choose({straight:sc(HD.straight,.45,1), sloping:sc(HD.sloping,.45,1)});
+  F.headShape=capP(feat(hs.v,hs.p));
+  const headFull=prof(HD[hs.v]); const hl=reach(headFull);
+  F.headLength=capP(feat(hl>.78?'long':(hl>.55?'medium':'short'), clamp(.45+1.2*Math.min(Math.abs(hl-.78),Math.abs(hl-.55)),.45,.7)));
+  const other=hs.v==='straight'?'sloping':'straight';
+  const fork = sc(HD[hs.v],.75,1)>.4 && sc(HD[other],.75,1)>.4;
+  F.headFork=capP(feat(fork?'yes':'no', .5));
+
+  // Life line: arc around the thumb, wide into the palm or close to the thumb
+  let lb=.32, lbs=-9, lctrl=.6;
+  for (let b=.2;b<=.48;b+=.02) for (const ca of [.45,.55,.7,.8]){ const v=sc([A(.99,b),A(ca,.62),A(.8,1)]); if(v>lbs){lbs=v;lb=b;lctrl=ca;} }
+  const wideS=Math.max(sc([A(.99,lb),A(.45,.62),A(.8,1)]), sc([A(.99,lb),A(.55,.62),A(.8,1)]));
+  const closeS=Math.max(sc([A(.99,lb),A(.7,.62),A(.8,1)]), sc([A(.99,lb),A(.8,.62),A(.8,1)]));
+  const la=choose({wide:wideS, close:closeS},1.4,.4,.75); F.lifeArc=capP(feat(la.v,la.p));
+  const lifeFull=prof([A(.99,lb),A(lctrl,.62),A(.8,1)]); const lm2=mean(lifeFull);
+  F.lifeDepth=capP(feat(lm2>.38?'deep':'faint', band(lm2,.38,1.3,.4,.75)));
+  F.lifeBreak=capP(feat(gaps(lifeFull)?'break':'none', gaps(lifeFull)?.5:.55));
+  const db=Math.abs(sb-lb);
+  F.headStart=capP(feat(db<.07?'joined':'separate', db<.04||db>.12 ? .62 : .45));
+
+  // Fate line: vertical up the centre toward the middle finger
+  let fa=.5, fs=-9; for (let a=.36;a<=.64;a+=.02){ const v=sc([A(a,.98),A(a+.02,.25)]); if(v>fs){fs=v;fa=a;} }
+  const fv = fs>.42?'strong':(fs>.2?'faint':'absent');
+  F.fate=capP(feat(fv, clamp(.45+1.5*Math.min(Math.abs(fs-.42),Math.abs(fs-.2)),.45,.75)));
+  if (fv!=='absent'){
+    const st=choose({ wrist:sc([A(fa,1),A(fa,.6)]), life:sc([A(.82,.88),A(fa,.58)]), luna:sc([A(.12,.85),A(fa,.58)]) },1.1,.35,.68);
+    F.fateStart=capP(feat(st.v,st.p));
+  }
+  // Sun line: short vertical under the ring finger
+  let ss=-9; for (let a=.18;a<=.38;a+=.02){ const v=sc([A(a,.5),A(a,.1)]); if(v>ss) ss=v; }
+  F.sun=capP(feat(ss>.38?'present':'absent', band(ss,.38,1.2,.4,.72)));
+  return F;
+}
+
 async function usePhoto(){
-  const btn=document.querySelector('[data-act="usephoto"]'); if(btn){btn.disabled=true;btn.textContent='Measuring…';}
-  setPill('Measuring your hand…');
+  const btn=document.querySelector('[data-act="usephoto"]'); if(btn){btn.disabled=true;btn.textContent='Reading…';}
+  setPill('Measuring your hand and lines…');
   if (mpState==='idle') loadMP();
   for (let i=0;i<60 && mpState==='loading';i++) await new Promise(r=>setTimeout(r,250));
-  let F={}, found=false;
+  let F=priorFeatures(), found=false, side=null;
   if (mpState==='ready'){
     try{
       const img=document.getElementById('still'); await img.decode().catch(()=>{});
       const res=landmarker.detectForVideo(img, performance.now()+1);
       const lm=res&&res.landmarks&&res.landmarks[0];
-      if (lm){ F=measure(lm,img.naturalWidth,img.naturalHeight); found=true; }
+      if (lm){
+        side=handSide(lm);
+        if (side==='right' && S.stillSide!=='override'){
+          S.stillSide='right';
+          setPill('This looks like your right hand');
+          bar(`<button class="btn" data-act="retake">Retake with left</button><button class="btn" data-act="useanyway">Use anyway</button>`);
+          return;
+        }
+        const P=lm.map(p=>({x:p.x*img.naturalWidth,y:p.y*img.naturalHeight}));
+        Object.assign(F, measureShape(P));
+        try{ Object.assign(F, analyzeLines(img, lm)); }catch(e){ console.warn('Line reading failed',e); }
+        found=true;
+      }
     }catch(e){ console.warn(e); }
   }
-  // keep any answers the person already gave
-  for (const [k,f] of Object.entries(S.features)) if(!f.ai) F[k]=f;
-  S.features=F; S.source=found?'auto':'photo'; S.isSample=false;
-  if (!found) toast(mpState==='ready'?'We couldn\'t find a hand to measure. You can answer every question yourself.':'Hand measuring is unavailable. You can answer every question yourself.');
+  for (const [k,f] of Object.entries(S.features)) if(f.user) F[k]=f;   // keep answers the person gave
+  S.features=F; S.source=found?'auto':'manual'; S.isSample=false; S.checkIds=null;
+  if (!found) toast(mpState==='ready'?'We couldn\'t find a hand in that photo, so every answer needs a quick check.':'Hand measuring is unavailable, so every answer needs a quick check.');
   go('confirm');
 }
 
-/* ---------- Questions ---------- */
+/* ---------- Quick check ---------- */
+function qHTML(q,F){
+  const f=F[q.id], g=QGROUP[q.id];
+  const pct = f ? Math.round(f.p*100) : 0;
+  const badge = !f ? '' : f.user ? `<span class="badge you">Checked</span>`
+    : `<span class="badge ${f.p<CHECK_BELOW?'low':(f.p<.75?'medium':'high')}">${pct}% sure</span>`;
+  return `<div class="qcard ${f&&!f.user&&f.p<CHECK_BELOW?'needs':''}" role="group" aria-label="${esc(q.label)}">
+    <div class="g-art">${palmSVG(g.hl,{aria:g.title+' highlighted'})}</div>
+    <div class="qc-main">
+      <div class="q-head"><span class="label">${g.title} <span class="hi">${g.hi}</span></span>${badge}</div>
+      <strong class="qc-label">${q.label}${q.hi?` <span class="hi muted">${q.hi}</span>`:''}</strong>
+      ${q.help?`<p class="help">${q.help}</p>`:''}
+      <div class="chips">${q.opts.map(([v,l])=>`<button class="chip" data-q="${q.id}" data-v="${v}" aria-pressed="${f&&f.v===v}">${l}</button>`).join('')}</div>
+    </div></div>`;
+}
 function renderConfirm(){
   const F=S.features;
+  for (const [k,[v,p]] of Object.entries(PRIORS)) if(!F[k]) F[k]=feat(v,p,{prior:true});
   const visible=ALLQ.filter(q=>!q.showIf||q.showIf(F));
-  const answered=visible.filter(q=>F[q.id]).length;
+  if (!S.checkIds) S.checkIds = visible.filter(q=>!F[q.id].user && F[q.id].p<CHECK_BELOW).map(q=>q.id);
+  const checkQs=visible.filter(q=>S.checkIds.includes(q.id));
+  const restQs=visible.filter(q=>!S.checkIds.includes(q.id));
+  const left=checkQs.filter(q=>!F[q.id].user).length;
   const intro = S.source==='auto'
-    ? `We measured your hand shape and fingers from the photo. Check those, then look at your palm and pick the closest match for the rest. Skip anything you can't tell.`
-    : `Look at your left palm and pick the closest match. Skip anything you can't tell; the reading uses what you give it.`;
+    ? `We filled in all ${visible.length} answers from your photo. ${checkQs.length?`We're less sure about ${checkQs.length} of them: tap the right option for each, comparing with your palm.`:'They all look clear.'}`
+    : `We've picked the most common answer for each one. Look at your left palm and tap the option that matches.`;
   $app.innerHTML = topbar('photo') + `
-  ${S.photoUrl?`<div class="ref"><img src="${S.photoUrl}" alt="Your palm photo"><p>Compare with your photo or your palm as you answer.</p><button class="linkbtn" data-act="zoom">Enlarge</button></div>`:''}
+  ${S.photoUrl?`<div class="ref"><img src="${S.photoUrl}" alt="Your palm photo"><p>Compare with your photo or your palm as you check.</p><button class="linkbtn" data-act="zoom">Enlarge</button></div>`:''}
   <section class="stack" style="margin-top:16px">
-    <span class="label">Step 2 of 3 · Your palm</span>
-    <h2>${S.source==='auto'?'Here\'s what we measured':'Tell us about your palm'}</h2>
+    <span class="label">Step 2 of 3 · Quick check</span>
+    <h2>${checkQs.length?`${checkQs.length} answer${checkQs.length>1?'s':''} to check`:'Everything looks clear'}</h2>
     <p class="muted">${intro}</p>
-    <div class="progress" aria-hidden="true"><span style="width:${Math.round(100*answered/visible.length)}%"></span></div>
-    ${GROUPS.map(g=>`
-      <div class="group">
-        <div class="g-art">${palmSVG(g.hl,{aria:g.title+' highlighted'})}</div>
-        <h3>${g.title} <span class="hi muted">${g.hi}</span></h3>
-        <p class="g-sub">${g.sub}</p>
-        <div class="qs">${g.qs.filter(q=>!q.showIf||q.showIf(F)).map(q=>{
-          const f=F[q.id];
-          const badge = f ? (f.ai ? `<span class="badge ${f.c}">${f.c==='low'?'Measured · check':'Measured'}</span>` : `<span class="badge you">Your answer</span>`) : '';
-          return `<div class="q" role="group" aria-label="${esc(q.label)}">
-            <div class="q-head"><strong>${q.label}${q.hi?` <span class="hi muted">${q.hi}</span>`:''}</strong>${badge}</div>
-            ${q.help?`<p class="help">${q.help}</p>`:''}
-            <div class="chips">${q.opts.map(([v,l])=>`<button class="chip" data-q="${q.id}" data-v="${v}" aria-pressed="${f&&f.v===v}">${l}</button>`).join('')}</div>
-          </div>`;}).join('')}</div>
-      </div>`).join('')}
+    ${checkQs.length?`<div class="progress" aria-hidden="true"><span style="width:${Math.round(100*(checkQs.length-left)/checkQs.length)}%"></span></div>`:''}
+    <div class="qlist">${checkQs.map(q=>qHTML(q,F)).join('')}</div>
+    ${restQs.length?`<details class="rest" ${checkQs.length?'':'open'}>
+      <summary><span><strong>${restQs.length} answer${restQs.length>1?'s':''} we're confident about</strong><br><span class="muted">Measured from your photo. Open to review or change.</span></span><span class="chev" aria-hidden="true">▾</span></summary>
+      <div class="qlist">${restQs.map(q=>qHTML(q,F)).join('')}</div>
+    </details>`:''}
   </section>`;
-  bar(`<span class="meta">${answered} of ${visible.length} answered</span><button class="btn primary" data-act="read" ${answered<3?'disabled':''}>Show my reading</button>`);
+  bar(`<span class="meta">${left?`${left} left to check`:'All checked'}</span><button class="btn primary" data-act="read">Show my reading</button>`);
 }
 
 /* ---------- Reading ---------- */
@@ -614,7 +795,7 @@ function renderReading(){
   const hand=F.hand&&F.hand.v;
   const handName={earth:'Earth hand',air:'Air hand',fire:'Fire hand',water:'Water hand'}[hand]||'Your palm';
   const top=[...R].filter(r=>r.strength).sort((a,b)=>b.strength-a.strength).slice(0,2);
-  const summary = (R[0].parts[0]||'') + (top.length===2?` Your palm shines brightest in ${top[0].name.toLowerCase()} and ${top[1].name.toLowerCase()}.`:'');
+  const summary = (R[0].parts[0]||'').replace(/^There are hints that y/,'Y') + (top.length===2?` Your palm shines brightest in ${top[0].name.toLowerCase()} and ${top[1].name.toLowerCase()}.`:'');
   $app.innerHTML = topbar(S.isSample?'home':'confirm') + `
   <section class="stack">
     <span class="label">${S.isSample?'Sample reading':'Step 3 of 3 · Your reading'}</span>
@@ -659,7 +840,8 @@ function renderReading(){
 }
 function shareText(){
   const labels={1:'Not at all',2:'A little',3:'Partly',4:'Mostly',5:'Spot on'};
-  return (S.rating?`How accurate it felt: ${S.rating}/5 (${labels[S.rating]})\n\n`:'') + S.lastText + `\n\nRead yours: ${location.href.split('#')[0]}`;
+  const checked=Object.values(S.features).filter(f=>f.user).length;
+  return (S.rating?`How accurate it felt: ${S.rating}/5 (${labels[S.rating]})\n`:'') + `Answers checked by hand: ${checked}\n\n` + S.lastText + `\n\nRead yours: ${location.href.split('#')[0]}`;
 }
 
 function render(){
@@ -672,19 +854,21 @@ function render(){
 document.addEventListener('click',async e=>{
   const g=e.target.closest('[data-go]'); if(g){ go(g.dataset.go); return; }
   const ch=e.target.closest('.chip[data-q]'); if(ch){
-    const id=ch.dataset.q, v=ch.dataset.v; const cur=S.features[id];
-    if (cur && cur.v===v && !cur.ai) delete S.features[id]; else S.features[id]={v,c:'high'};
-    const y=window.scrollY; renderConfirm(); window.scrollTo({top:y}); return; }
+    const id=ch.dataset.q, v=ch.dataset.v;
+    S.features[id]={v,p:1,c:'high',user:true};
+    const y=window.scrollY, restOpen=document.querySelector('details.rest')?.open;
+    renderConfirm(); if(restOpen) document.querySelector('details.rest').open=true; window.scrollTo({top:y}); return; }
   const rt=e.target.closest('.chip[data-rate]'); if(rt){ S.rating=Number(rt.dataset.rate); document.querySelectorAll('.chip[data-rate]').forEach(b=>b.setAttribute('aria-pressed', b===rt)); return; }
   const a=e.target.closest('[data-act]'); if(!a) return;
   const act=a.dataset.act;
-  if (act==='sample'){ S.features=Object.fromEntries(Object.entries(SAMPLE).map(([k,v])=>[k,{v,c:'high'}])); S.isSample=true; go('reading'); }
-  else if (act==='manual'){ if(S.isSample) S.features={}; S.source='manual'; S.isSample=false; go('confirm'); }
-  else if (act==='retake'){ if(S.photoUrl) URL.revokeObjectURL(S.photoUrl); S.photoUrl=null; renderPhoto(); }
+  if (act==='sample'){ S.features=Object.fromEntries(Object.entries(SAMPLE).map(([k,v])=>[k,{v,p:1,c:'high'}])); S.isSample=true; go('reading'); }
+  else if (act==='manual'){ S.features=priorFeatures(); S.source='manual'; S.isSample=false; S.checkIds=null; go('confirm'); }
+  else if (act==='retake'){ if(S.photoUrl) URL.revokeObjectURL(S.photoUrl); S.photoUrl=null; S.stillSide=null; renderPhoto(); }
   else if (act==='usephoto') usePhoto();
+  else if (act==='useanyway'){ S.stillSide='override'; usePhoto(); }
   else if (act==='zoom'){ const z=document.createElement('div'); z.className='zoom'; z.innerHTML=`<img src="${S.photoUrl}" alt="Your palm photo, enlarged"><button class="btn primary">Close</button>`; z.onclick=()=>z.remove(); document.body.append(z); }
   else if (act==='read'){ S.isSample=false; S.rating=0; go('reading'); }
-  else if (act==='restart'){ S.features={}; if(S.photoUrl)URL.revokeObjectURL(S.photoUrl); S.photoUrl=null; S.source='manual'; S.rating=0; go('home'); }
+  else if (act==='restart'){ S.features={}; if(S.photoUrl)URL.revokeObjectURL(S.photoUrl); S.photoUrl=null; S.source='manual'; S.rating=0; S.checkIds=null; go('home'); }
   else if (act==='share'){
     const text=shareText();
     if (navigator.share){ try{ await navigator.share({title:'My palm reading', text}); return; }catch(err){ if(err&&err.name==='AbortError') return; } }
