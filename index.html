@@ -191,6 +191,40 @@ details.rest>summary::-webkit-details-marker{display:none}
 details.rest[open]>summary .chev{transform:rotate(180deg)}
 details.rest .chev{transition:transform .2s;color:var(--plum);font-size:1.1rem}
 details.rest>.qlist{padding:0 12px 12px}
+
+.form{display:grid;gap:18px}
+.field{display:grid;gap:8px}
+.field>span{font-weight:700;font-size:.95rem}
+.field em{font-style:normal;font-weight:400;font-size:.82rem}
+.field input{font:inherit;font-size:1rem;padding:12px 14px;border-radius:12px;border:1.5px solid var(--rule);background:var(--surface);color:var(--ink);min-height:48px;width:100%}
+.field input:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+.who{font-size:.95rem;color:var(--muted);margin-bottom:-6px}
+.traits{display:flex;flex-wrap:wrap;gap:6px}
+.trait{background:var(--accent-soft);color:var(--ink);font-weight:800;font-size:.82rem;padding:5px 12px;border-radius:999px}
+.combo{font-size:.98rem}
+.focus{background:var(--plum);color:var(--bg);border-radius:20px;padding:18px;display:grid;gap:8px}
+.focus .label{color:color-mix(in srgb,var(--bg) 75%,transparent)}
+.focus .label .hi{letter-spacing:0;text-transform:none}
+.focus p{font-size:.98rem}
+.focus .tip{border-top:1px solid color-mix(in srgb,var(--bg) 25%,transparent);padding-top:10px;font-weight:700}
+.glance{background:var(--surface);border:1px solid var(--rule);border-radius:20px;padding:16px 16px 10px;display:grid;gap:2px}
+.glance>.label{margin-bottom:6px}
+.row{border-top:1px solid var(--rule)}
+.row summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:11px 0;align-items:center}
+.row summary::-webkit-details-marker{display:none}
+.row .r-cat{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:var(--accent)}
+.row .meter{grid-row:1;grid-column:2}
+.row .r-line{grid-column:1/-1;font-size:.95rem;line-height:1.4}
+.row .r-more{padding:0 0 12px;display:grid;gap:8px;font-size:.88rem;color:var(--muted)}
+.mix{display:grid;gap:8px}
+.bar-row{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px;align-items:center;font-size:.88rem;font-weight:600}
+.track{height:8px;border-radius:8px;background:var(--sunk);overflow:hidden}
+.track span{display:block;height:100%;background:var(--plum);border-radius:8px}
+.stars{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.stars>div{background:var(--surface);border:1px solid var(--rule);border-radius:16px;padding:14px;display:grid;gap:4px}
+.stars strong{font-family:var(--display);font-weight:400;font-size:1.3rem}
+.stars p{font-size:.88rem;color:var(--muted)}
+@media (max-width:420px){.stars{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -235,12 +269,12 @@ function palmSVG(hl=[], o={}){
   let labels='';
   if (o.labels){
     const L=(x,y,a,en,hi)=>`<text x="${x}" y="${y}" text-anchor="${a}" font-family="Mulish, sans-serif" font-size="11" font-weight="800" fill="var(--ink)">${en}</text><text x="${x}" y="${y+13}" text-anchor="${a}" font-family="Tiro Devanagari Hindi, serif" font-size="11" fill="var(--muted)">${hi}</text>`;
-    labels = L(4,232,'start','Heart','हृदय')+L(4,262,'start','Head','मस्तिष्क')+L(316,380,'end','Life','जीवन')+L(150,394,'middle','Fate','भाग्य');
+    labels = L(316,232,'end','Heart','हृदय')+L(316,262,'end','Head','मस्तिष्क')+L(4,380,'start','Life','जीवन')+L(170,394,'middle','Fate','भाग्य');
   }
   const vb = o.labels ? '0 26 320 384' : '40 30 280 352';
   return `<svg viewBox="${vb}" role="img" aria-label="${o.aria||'Left palm diagram'}" xmlns="http://www.w3.org/2000/svg">
-    <g fill="var(--palm-edge)" stroke="var(--palm-edge)" stroke-width="6" stroke-linejoin="round">${shapes}</g>
-    <g fill="var(--palm)">${shapes}</g>${marks}${lines}${labels}</svg>`;
+    <g transform="matrix(-1 0 0 1 ${o.labels?320:360} 0)"><g fill="var(--palm-edge)" stroke="var(--palm-edge)" stroke-width="6" stroke-linejoin="round">${shapes}</g>
+    <g fill="var(--palm)">${shapes}</g>${marks}${lines}</g>${labels}</svg>`;
 }
 
 /* ---------- Questions (feature schema) ---------- */
@@ -394,7 +428,7 @@ const MP_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vis
 const MP_WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
 const MP_MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 const CHECK_BELOW = 0.6;   // answers below this confidence are shown for the user to verify
-const S = { screen:'home', photoUrl:null, features:{}, source:'manual', isSample:false, rating:0, lastText:'', checkIds:null, stillSide:null };
+const S = { screen:'home', photoUrl:null, features:{}, source:'manual', isSample:false, rating:0, lastText:'', checkIds:null, stillSide:null, me:{} };
 const CAM = { stream:null, raf:0, steady:0, last:null, phase:'idle', lastT:0, mirrored:false };
 let landmarker = null, mpState = 'idle'; // idle | loading | ready | failed
 
@@ -428,7 +462,7 @@ async function loadMP(){
 
 const $app=document.getElementById('app'), $bar=document.getElementById('bar'), $barIn=document.getElementById('barInner');
 function esc(s){return String(s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]))}
-function go(screen){ if(S.screen==='photo'&&screen!=='photo') stopCam(); S.screen=screen; render(); window.scrollTo({top:0}); }
+function go(screen){ if(S.screen==='about') saveAbout(); if(S.screen==='photo'&&screen!=='photo') stopCam(); S.screen=screen; render(); window.scrollTo({top:0}); }
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2800)}
 function bar(html){ if(!html){$bar.hidden=true;$barIn.innerHTML='';return;} $barIn.innerHTML=html; $bar.hidden=false; }
 function topbar(back){ return `<div class="topbar"><div class="wordmark">Palm Reading <span class="hi">हस्तरेखा</span></div>${back?`<button class="linkbtn" data-go="${back}">← Back</button>`:''}</div>`; }
@@ -452,22 +486,22 @@ function renderHome(){
     <p class="privacy">${LOCK}<span>Your photo never leaves your phone. Everything runs in your browser.</span></p>
     <p class="note">Based on classic palmistry (Cheiro, Benham) and Hast Rekha Shastra. For fun and self-reflection; it is not science and makes no health or lifespan predictions.</p>
   </section>`;
-  bar(`<button class="btn" data-act="sample">See a sample</button><button class="btn primary" data-go="photo">Read my palm</button>`);
+  bar(`<button class="btn" data-act="sample">See a sample</button><button class="btn primary" data-go="about">Read my palm</button>`);
 }
 
 /* ---------- Camera ---------- */
 function guideSVG(){
   const palmPath='M62 182 Q62 172 74 172 L214 172 Q231 175 233 200 L236 300 Q236 352 198 376 L108 376 Q70 362 64 300 Z';
   const fingers = Object.values(FINGERS).map(([x,y,w,h])=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="15"/>`).join('');
-  return `<svg viewBox="40 30 240 352" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="${palmPath}"/>${fingers}<rect x="226" y="196" width="36" height="112" rx="18" transform="rotate(28 244 300)"/><text x="148" y="290" text-anchor="middle">LEFT</text></svg>`;
+  return `<svg viewBox="26 30 268 352" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><g transform="matrix(-1 0 0 1 320 0)"><path d="${palmPath}"/>${fingers}<rect x="226" y="196" width="36" height="112" rx="18" transform="rotate(28 244 300)"/></g><text x="166" y="290" text-anchor="middle">LEFT</text></svg>`;
 }
 function renderPhoto(){
   const hasCam = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-  $app.innerHTML = topbar('home') + `
+  $app.innerHTML = topbar('about') + `
   <section class="stack">
-    <span class="label">Step 1 of 3 · Photo</span>
+    <span class="label">Step 2 of 4 · Photo</span>
     <h2>Show your left palm</h2>
-    <p class="muted">Hold the phone in your <strong>right</strong> hand. Open your <strong>left</strong> palm under the camera, fingers pointing up the screen and slightly apart, thumb on the right. Soft daylight works best.</p>
+    <p class="muted">Hold the phone in your <strong>right</strong> hand. Open your <strong>left</strong> palm under the camera, fingers pointing up the screen and slightly apart. Soft daylight works best.</p>
     <div class="cam" id="cam">
       <video id="vid" playsinline muted autoplay></video>
       <img class="still" id="still" alt="Your left palm photo" hidden>
@@ -540,8 +574,7 @@ function loop(){
   const y0=Math.min(...ys), y1=Math.max(...ys), x0=Math.min(...xs), x1=Math.max(...xs);
   const spread = angleDeg(sub(P[8],P[5]), sub(P[20],P[17]));
   let msg='', ok=false;
-  if (handSide(lm)==='right') msg='That’s your right hand. Show your left palm';
-  else if (x0<0.01||x1>0.99||y0<0.01||y1>0.995) msg='Move back a little';
+  if (x0<0.01||x1>0.99||y0<0.01||y1>0.995) msg='Move back a little';
   else if (y1-y0<0.55) msg='Move a little closer';
   else if (P[12].y > P[0].y) msg='Point your fingers up the screen';
   else if (spread<4) msg='Spread your fingers slightly';
@@ -550,7 +583,6 @@ function loop(){
   CAM.last={x:c.x,y:c.y};
   if (ok && move<0.012) CAM.steady++; else if (ok) CAM.steady=Math.max(0,CAM.steady-2); else CAM.steady=0;
   cam.classList.toggle('ready', ok);
-  cam.classList.toggle('wrong', msg.startsWith('That’s your right'));
   const need=12; hold.style.width = Math.min(100,100*CAM.steady/need)+'%';
   setPill(ok ? (CAM.steady>2?'Hold still…':'Looks good, hold still') : msg);
   if (CAM.steady>=need) capture();
@@ -726,13 +758,6 @@ async function usePhoto(){
       const res=landmarker.detectForVideo(img, performance.now()+1);
       const lm=res&&res.landmarks&&res.landmarks[0];
       if (lm){
-        side=handSide(lm);
-        if (side==='right' && S.stillSide!=='override'){
-          S.stillSide='right';
-          setPill('This looks like your right hand');
-          bar(`<button class="btn" data-act="retake">Retake with left</button><button class="btn" data-act="useanyway">Use anyway</button>`);
-          return;
-        }
         const P=lm.map(p=>({x:p.x*img.naturalWidth,y:p.y*img.naturalHeight}));
         Object.assign(F, measureShape(P));
         try{ Object.assign(F, analyzeLines(img, lm)); }catch(e){ console.warn('Line reading failed',e); }
@@ -775,7 +800,7 @@ function renderConfirm(){
   $app.innerHTML = topbar('photo') + `
   ${S.photoUrl?`<div class="ref"><img src="${S.photoUrl}" alt="Your palm photo"><p>Compare with your photo or your palm as you check.</p><button class="linkbtn" data-act="zoom">Enlarge</button></div>`:''}
   <section class="stack" style="margin-top:16px">
-    <span class="label">Step 2 of 3 · Quick check</span>
+    <span class="label">Step 3 of 4 · Quick check</span>
     <h2>${checkQs.length?`${checkQs.length} answer${checkQs.length>1?'s':''} to check`:'Everything looks clear'}</h2>
     <p class="muted">${intro}</p>
     ${checkQs.length?`<div class="progress" aria-hidden="true"><span style="width:${Math.round(100*(checkQs.length-left)/checkQs.length)}%"></span></div>`:''}
@@ -788,64 +813,220 @@ function renderConfirm(){
   bar(`<span class="meta">${left?`${left} left to check`:'All checked'}</span><button class="btn primary" data-act="read">Show my reading</button>`);
 }
 
-/* ---------- Reading ---------- */
-function readingText(R){ return R.map(r=>`${r.i}. ${r.name}: ${r.headline}\n${r.parts.join(' ')}`).join('\n\n'); }
-function renderReading(){
-  const F=S.features; const R=buildReading(F);
+/* ---------- Short lines: one punchy sentence per area ---------- */
+const SHORT = {
+  personality:['hand',{earth:'You’re the steady one everyone leans on.',air:'Ideas and good conversation keep you alive.',fire:'You act first, and others follow your spark.',water:'You feel everything and read people instantly.'}],
+  love:['heartEnd',{jupiter:'You love with high hopes and total devotion.',between:'Warm and giving, yet you keep your own counsel.',saturn:'Slow to trust, fiercely loyal once you do.'}],
+  marriage:['marriage',{none:'Love arrives when it truly fits your life.',one:'One deep, lasting partnership stands out.',two:'Two important bonds shape your story.',several:'You connect easily; one bond will matter most.'}],
+  mind:['headShape',{straight:'Clear, logical and very hard to fool.',sloping:'You think in pictures; your best ideas come sideways.'}],
+  vitality:['lifeArc',{wide:'Big energy and a hunger for new experiences.',close:'Steady energy; home is where you recharge.'}],
+  career:['fate',{strong:'You know where you’re going and build steadily.',faint:'Your career follows your passions, not a fixed plan.',absent:'You write your own rules and your own path.'}],
+  wealth:['triangle',{closed:'Money comes to you, and it stays.',open:'You earn well; saving is your power move.',none:'Your wealth follows your effort, not luck.'}],
+  success:['sun',{present:'Your talent gets noticed and rewarded.',absent:'Quiet, well-earned success that builds over time.'}],
+  leadership:['thumbLength',{long:'Strong will: you finish what you start.',average:'You push when it matters and let go when it doesn’t.',short:'You lead with heart, not force.'}],
+  intuition:['luna',{full:'Strong gut feelings and a pull to faraway places.',flat:'Practical instincts and deep roots.'}]
+};
+const MARRIAGE_BY_STATUS = {
+  single:{none:'Love arrives when it truly fits your life.',one:'One deep, lasting partnership is marked for you.',two:'Two important bonds are marked; the later one tends to stay.',several:'You’ll have choices in love; one bond stands out.'},
+  together:{none:'Your bond is built on choice, not fate, and that makes it strong.',one:'Your palm marks one deep, lasting bond.',two:'Two big bonds shape your life; commitment comes from you.',several:'You love easily; your main bond is the one you choose daily.'}
+};
+
+/* ---------- About you: star sign and birth number ---------- */
+const ZODIAC = [ // [name, hindi, start month, start day, element, line]
+  ['Capricorn','मकर',12,22,'earth','Ambitious, patient and quietly determined.'],
+  ['Aquarius','कुंभ',1,20,'air','Original, independent and a little rebellious.'],
+  ['Pisces','मीन',2,19,'water','Dreamy, empathetic and deeply creative.'],
+  ['Aries','मेष',3,21,'fire','Brave, direct and always first to act.'],
+  ['Taurus','वृषभ',4,20,'earth','Loyal, sensual and steady as a rock.'],
+  ['Gemini','मिथुन',5,21,'air','Witty, curious and endlessly adaptable.'],
+  ['Cancer','कर्क',6,21,'water','Protective, intuitive and family-first.'],
+  ['Leo','सिंह',7,23,'fire','Warm, generous and born to shine.'],
+  ['Virgo','कन्या',8,23,'earth','Precise, helpful and quietly brilliant.'],
+  ['Libra','तुला',9,23,'air','Charming, fair and drawn to beauty.'],
+  ['Scorpio','वृश्चिक',10,23,'water','Intense, magnetic and fiercely loyal.'],
+  ['Sagittarius','धनु',11,22,'fire','Free-spirited, optimistic and adventurous.']
+];
+function sunSign(m,d){ // m 1-12
+  let sign=ZODIAC[0];
+  for (const z of ZODIAC){ if (m>z[2] || (m===z[2] && d>=z[3])) sign=z; }
+  if (m===12 && d>=22) sign=ZODIAC[0];
+  return {name:sign[0],hi:sign[1],el:sign[4],line:sign[5]};
+}
+function lifePath(iso){
+  let n=iso.replace(/\D/g,'').split('').reduce((a,b)=>a+Number(b),0);
+  while (n>9 && ![11,22,33].includes(n)) n=String(n).split('').reduce((a,b)=>a+Number(b),0);
+  return n;
+}
+const LIFEPATH = {1:'The pioneer: independent and self-starting.',2:'The peacemaker: tactful, loyal, a natural partner.',3:'The communicator: expressive, social and creative.',4:'The builder: disciplined, reliable and patient.',5:'The free spirit: adventurous and curious.',6:'The nurturer: caring, responsible, family-first.',7:'The seeker: thoughtful, intuitive and private.',8:'The achiever: ambitious, good with money and power.',9:'The humanitarian: compassionate and big-hearted.',11:'The visionary: inspired, sensitive and intuitive.',22:'The master builder: big dreams, practical results.',33:'The teacher: devoted to lifting others up.'};
+const ELEMENT_WORD = {fire:'passion',earth:'steadiness',air:'curiosity',water:'feeling'};
+const HAND_EL = {earth:'earth',air:'air',fire:'fire',water:'water'};
+function comboLine(handEl, sign){
+  if (!handEl || !sign) return '';
+  const H=handEl[0].toUpperCase()+handEl.slice(1), a=ELEMENT_WORD[handEl], b=ELEMENT_WORD[sign.el];
+  if (handEl===sign.el) return `Your ${H} hand and ${sign.name} sign are both ${handEl}: ${a} runs doubly deep in you.`;
+  const pair=[handEl,sign.el].sort().join('-');
+  if (pair==='earth-water' || pair==='air-fire') return `Your ${H} hand and ${sign.name} sign balance each other: ${a} paired with ${b}.`;
+  return `Your ${H} hand and ${sign.name} sign pull in different directions: ${a} one day, ${b} the next. People find you hard to predict.`;
+}
+
+/* ---------- Blending all inputs into one trait profile ----------
+   Every source (palm features, star sign element, birth number) adds points to the
+   same eight traits, scaled by how sure we are of it. The top traits lead the reading. */
+const TRAITS = {warmth:'Warm',drive:'Driven',intuition:'Intuitive',logic:'Analytical',stability:'Grounded',adventure:'Free-spirited',creativity:'Creative',leadership:'Bold'};
+const PALM_TRAITS = {
+  hand:{earth:{stability:2},air:{logic:1.5,adventure:.5},fire:{drive:1.5,adventure:1},water:{intuition:1.5,creativity:.5,warmth:.5}},
+  heartCurve:{curved:{warmth:1},straight:{logic:.5}},
+  heartEnd:{jupiter:{warmth:.5,drive:.5},between:{warmth:1},saturn:{stability:.7}},
+  headShape:{straight:{logic:1.5},sloping:{creativity:1.5,intuition:.5}},
+  lifeArc:{wide:{adventure:1.5},close:{stability:1}},
+  fate:{strong:{drive:1.5},absent:{adventure:1}},
+  sun:{present:{creativity:1}},
+  indexVsRing:{longer:{leadership:1.5},shorter:{creativity:1}},
+  thumbLength:{long:{drive:1,leadership:.7}},
+  thumbAngle:{wide:{adventure:.5,warmth:.5}},
+  luna:{full:{intuition:1,adventure:.5}},
+  venus:{full:{warmth:1}},
+  jupiter:{full:{leadership:1}}
+};
+const SIGN_TRAITS = {fire:{drive:1.5,leadership:1},earth:{stability:2},air:{logic:1.5,adventure:.5},water:{intuition:1.5,warmth:1}};
+const NUM_TRAITS = {1:{leadership:1.5},2:{warmth:1.5},3:{creativity:1.5},4:{stability:1.5},5:{adventure:1.5},6:{warmth:1.5},7:{intuition:1.5},8:{drive:1.5},9:{warmth:1,creativity:.5},11:{intuition:1.5},22:{leadership:1,stability:1},33:{warmth:1.5}};
+function traitProfile(F, sign, num){
+  const t=Object.fromEntries(Object.keys(TRAITS).map(k=>[k,0]));
+  const addT=(m,w)=>{ for(const [k,v] of Object.entries(m||{})) t[k]+=v*w; };
+  for (const [fid,map] of Object.entries(PALM_TRAITS)){ const f=F[fid]; if(f) addT(map[f.v], f.p??1); }
+  if (sign) addT(SIGN_TRAITS[sign.el], .8);
+  if (num) addT(NUM_TRAITS[num], .6);
+  const max=Math.max(...Object.values(t),1);
+  return Object.entries(t).map(([k,v])=>({k,label:TRAITS[k],v,pct:Math.round(100*v/max)})).sort((a,b)=>b.v-a.v);
+}
+
+const FOCUS = {love:['Love','प्रेम',['love','marriage']],career:['Career','कर्म',['career','leadership']],money:['Money','धन',['wealth','success']],family:['Family','परिवार',['marriage','love']],energy:['Health & energy','ऊर्जा',['vitality','personality']],growth:['Self-growth','आत्म-विकास',['mind','intuition']]};
+const FOCUS_TIP = {
+  love:{fire:'Say what you feel first; your boldness is attractive.',earth:'Show love through actions; that’s your language.',air:'Keep it playful; you fall for minds before faces.',water:'Trust your gut about people; it’s rarely wrong.'},
+  career:{fire:'Choose work where you can lead and move fast.',earth:'Build slowly; your patience compounds.',air:'Roles with people and ideas suit you best.',water:'Creative or caring work will feel like purpose.'},
+  money:{fire:'Big bets tempt you; keep a safety net.',earth:'Steady saving is your superpower.',air:'Your ideas can earn; write them down.',water:'Spend on meaning, not mood.'},
+  family:{fire:'You protect your people fiercely.',earth:'You are the anchor at home.',air:'You keep the family talking and laughing.',water:'You sense what everyone needs before they ask.'},
+  energy:{fire:'Burn bright, but schedule rest.',earth:'Routine is your best medicine.',air:'Move your body to quiet your mind.',water:'Protect your energy from draining people.'},
+  growth:{fire:'Finish one big thing before starting the next.',earth:'Try one new thing a month.',air:'Go deep on one idea instead of ten.',water:'Set boundaries without guilt.'}
+};
+
+const SAMPLE_ME = {name:'', dob:'1995-11-08', focus:'career', status:''};
+function ME(){ return S.isSample ? SAMPLE_ME : S.me; }
+
+/* ---------- About you screen ---------- */
+function renderAbout(){
+  const me=S.me;
+  $app.innerHTML = topbar('home') + `
+  <section class="stack">
+    <span class="label">Step 1 of 4 · About you</span>
+    <h2>A little about you</h2>
+    <p class="muted">Four quick questions so your reading speaks to you. All optional; nothing leaves your phone.</p>
+    <div class="form">
+      <label class="field" for="nm"><span>First name</span><input id="nm" type="text" autocomplete="given-name" placeholder="e.g. Priya" value="${esc(me.name||'')}"></label>
+      <label class="field" for="dob"><span>Date of birth <em class="muted">for your star sign and birth number</em></span><input id="dob" type="date" max="${new Date().toISOString().slice(0,10)}" value="${me.dob||''}"></label>
+      <div class="field" role="group" aria-label="What's on your mind most right now?"><span>What’s on your mind most right now?</span>
+        <div class="chips">${Object.entries(FOCUS).map(([k,[en,hi]])=>`<button class="chip" data-me="focus" data-v="${k}" aria-pressed="${me.focus===k}">${en} <span class="hi">${hi}</span></button>`).join('')}</div></div>
+      <div class="field" role="group" aria-label="Relationship"><span>Relationship</span>
+        <div class="chips">${[['single','Single'],['together','In a relationship'],['married','Married'],['skip','Prefer not to say']].map(([k,l])=>`<button class="chip" data-me="status" data-v="${k}" aria-pressed="${me.status===k}">${l}</button>`).join('')}</div></div>
+    </div>
+  </section>`;
+  bar(`<button class="btn" data-act="aboutnext">Skip</button><button class="btn primary" data-act="aboutnext">Continue</button>`);
+}
+function saveAbout(){
+  const nm=document.getElementById('nm'), dob=document.getElementById('dob');
+  if (nm) S.me.name=nm.value.trim().slice(0,30);
+  if (dob) S.me.dob=dob.value;
+}
+
+/* ---------- Reading (short) ---------- */
+function shortFor(key,F){
+  const [fid,map]=SHORT[key]; const f=F[fid]; if(!f) return '';
+  if (key==='marriage'){ const st=ME().status; const grp = st==='single'?'single':((st==='together'||st==='married')?'together':null); if(grp) return MARRIAGE_BY_STATUS[grp][f.v]||map[f.v]; }
+  return map[f.v]||'';
+}
+function readingModel(F){
+  const R=buildReading(F).map(r=>({...r, short:shortFor(r.key,F)}));
+  const me=ME(); let sign=null, num=null;
+  if (me.dob && /^\d{4}-\d{2}-\d{2}$/.test(me.dob)){ const [y,m,d]=me.dob.split('-').map(Number); sign=sunSign(m,d); num=lifePath(me.dob); }
   const hand=F.hand&&F.hand.v;
-  const handName={earth:'Earth hand',air:'Air hand',fire:'Fire hand',water:'Water hand'}[hand]||'Your palm';
-  const top=[...R].filter(r=>r.strength).sort((a,b)=>b.strength-a.strength).slice(0,2);
-  const summary = (R[0].parts[0]||'').replace(/^There are hints that y/,'Y') + (top.length===2?` Your palm shines brightest in ${top[0].name.toLowerCase()} and ${top[1].name.toLowerCase()}.`:'');
+  const traits=traitProfile(F,sign,num);
+  return {R,sign,num,hand,traits};
+}
+function renderReading(){
+  const F=S.features; const M=readingModel(F); const me=ME();
+  const handName={earth:'Earth hand',air:'Air hand',fire:'Fire hand',water:'Water hand'}[M.hand]||'Your palm';
+  const top3=M.traits.slice(0,3).map(t=>t.label);
+  const who = me.name ? `${esc(me.name)}, you have` : 'You have';
+  const combo = comboLine(M.hand, M.sign) || shortFor('personality',F);
+  const focus = me.focus && FOCUS[me.focus];
+  const focusRows = focus ? focus[2].map(k=>M.R.find(r=>r.key===k)) : [];
+  const tipEl = M.sign ? M.sign.el : (M.hand||'water');
+  const sources = ['palm', M.sign&&M.sign.name, M.num&&`birth number ${M.num}`].filter(Boolean);
   $app.innerHTML = topbar(S.isSample?'home':'confirm') + `
   <section class="stack">
-    <span class="label">${S.isSample?'Sample reading':'Step 3 of 3 · Your reading'}</span>
     ${S.isSample?`<p class="sample-flag">This is an example palm, not yours. Photograph your left palm to get your own reading.</p>`:''}
     <div class="result-hero">
-      <div class="stack" style="gap:8px">
-        <span class="label">Left palm</span>
+      <div class="stack" style="gap:10px">
+        <span class="label">${S.isSample?'Sample reading':'Your left palm'}</span>
+        <p class="who">${who} a</p>
         <div class="element">${handName}</div>
-        <p style="font-size:.98rem">${esc(summary)}</p>
+        <div class="traits">${top3.map(t=>`<span class="trait">${t}</span>`).join('')}</div>
+        <p class="combo">${esc(combo)}</p>
       </div>
       ${palmSVG(['shape'],{aria:'Your palm type'})}
     </div>
-    <div class="cards">
-      ${R.map((r,idx)=>`
-      <details class="card" ${idx<2?'open':''}>
+    ${focus?`<div class="focus">
+      <span class="label">On your mind · ${focus[0]} <span class="hi">${focus[1]}</span></span>
+      ${focusRows.map(r=>`<p>${esc(r.short||r.headline)}</p>`).join('')}
+      <p class="tip">${esc(FOCUS_TIP[me.focus][tipEl])}</p>
+    </div>`:''}
+    <div class="glance">
+      <span class="label">At a glance</span>
+      ${M.R.map(r=>`
+      <details class="row">
         <summary>
-          <span class="num">${String(r.i).padStart(2,'0')}</span>
-          <span class="cat"><span class="label">${r.name}</span><span class="hi muted">${r.hi}</span></span>
+          <span class="r-cat">${r.name}</span>
           <span class="meter" role="img" aria-label="Strength ${r.strength} of 5">${[1,2,3,4,5].map(n=>`<i class="${n<=r.strength?'on':''}"></i>`).join('')}</span>
-          <span></span><span class="headline">${esc(r.headline)}</span>
+          <span class="r-line">${esc(r.short||r.headline)}</span>
         </summary>
-        <div class="body">
-          <div>${r.parts.length?r.parts.map(p=>`<p>${esc(p)}</p>`).join(''):`<p class="muted">Answer the ${r.name.toLowerCase()} questions to read this area.</p>`}</div>
-          <div class="mini">${palmSVG(r.hl,{aria:'Where this was read from'})}</div>
+        <div class="r-more">
+          ${r.parts.slice(0,2).map(p=>`<p>${esc(p)}</p>`).join('')}
           ${r.src.length?`<div class="from"><span class="label">Read from</span>${r.src.map(s=>`<span class="src">${s}</span>`).join('')}</div>`:''}
           ${r.caveat?`<p class="caveat">${r.caveat}</p>`:''}
         </div>
       </details>`).join('')}
+      <p class="muted" style="font-size:.8rem">Tap any line for the why.</p>
     </div>
+    <div class="mix">
+      <span class="label">Your trait mix</span>
+      ${M.traits.map(t=>`<div class="bar-row"><span>${t.label}</span><span class="track"><span style="width:${t.pct}%"></span></span></div>`).join('')}
+      <p class="muted" style="font-size:.8rem">Blended from your ${sources.join(', ').replace(/, ([^,]*)$/,' and $1')}.</p>
+    </div>
+    ${M.sign?`<div class="stars">
+      <div><span class="label">Star sign</span><strong>${M.sign.name} <span class="hi muted">${M.sign.hi}</span></strong><p>${M.sign.line}</p></div>
+      <div><span class="label">Birth number</span><strong>${M.num}</strong><p>${LIFEPATH[M.num]}</p></div>
+    </div>`:''}
     ${S.isSample?'':`<div class="rate" role="group" aria-label="Rate your reading">
       <strong>How well does this describe you?</strong>
       <div class="chips">${[['1','Not at all'],['2','A little'],['3','Partly'],['4','Mostly'],['5','Spot on']].map(([v,l])=>`<button class="chip" data-rate="${v}" aria-pressed="${S.rating==v}">${l}</button>`).join('')}</div>
-      <p class="muted" style="font-size:.85rem">Your rating is added when you share your reading.</p>
     </div>`}
-    <p class="note">For fun and self-reflection. Palmistry is a tradition, not a science; nothing here predicts health, lifespan or fixed events.</p>
+    <p class="note">For fun and self-reflection. Palmistry and astrology are traditions, not science; nothing here predicts health, lifespan or fixed events.</p>
     <div id="copyWrap" hidden><textarea class="copybox" id="copyBox" readonly></textarea></div>
   </section>`;
   bar(S.isSample
-    ? `<button class="btn" data-go="home">Home</button><button class="btn primary" data-go="photo">Read my palm</button>`
+    ? `<button class="btn" data-go="home">Home</button><button class="btn primary" data-go="about">Read my palm</button>`
     : `<button class="btn" data-act="restart">Start over</button><button class="btn primary" data-act="share">Share my reading</button>`);
-  S.lastText = `My left palm reading: ${handName}\n\n${summary}\n\n${readingText(R)}`;
+  S.lastText = `${me.name?me.name+'’s':'My'} palm reading: ${handName} · ${top3.join(', ')}\n${combo}\n\n` + M.R.map(r=>`• ${r.name}: ${r.short||r.headline}`).join('\n') + (M.sign?`\n\n${M.sign.name} · Birth number ${M.num}`:'');
 }
 function shareText(){
   const labels={1:'Not at all',2:'A little',3:'Partly',4:'Mostly',5:'Spot on'};
   const checked=Object.values(S.features).filter(f=>f.user).length;
-  return (S.rating?`How accurate it felt: ${S.rating}/5 (${labels[S.rating]})\n`:'') + `Answers checked by hand: ${checked}\n\n` + S.lastText + `\n\nRead yours: ${location.href.split('#')[0]}`;
+  return (S.rating?`Accuracy: ${S.rating}/5 (${labels[S.rating]}) · ${checked} answers checked\n\n`:'') + S.lastText + `\n\nRead yours: ${location.href.split('#')[0]}`;
 }
 
 function render(){
   if (S.screen==='home') renderHome();
+  else if (S.screen==='about') renderAbout();
   else if (S.screen==='photo') renderPhoto();
   else if (S.screen==='confirm') renderConfirm();
   else renderReading();
@@ -858,6 +1039,7 @@ document.addEventListener('click',async e=>{
     S.features[id]={v,p:1,c:'high',user:true};
     const y=window.scrollY, restOpen=document.querySelector('details.rest')?.open;
     renderConfirm(); if(restOpen) document.querySelector('details.rest').open=true; window.scrollTo({top:y}); return; }
+  const mc=e.target.closest('.chip[data-me]'); if(mc){ saveAbout(); const k=mc.dataset.me, v=mc.dataset.v; S.me[k] = S.me[k]===v ? '' : v; renderAbout(); return; }
   const rt=e.target.closest('.chip[data-rate]'); if(rt){ S.rating=Number(rt.dataset.rate); document.querySelectorAll('.chip[data-rate]').forEach(b=>b.setAttribute('aria-pressed', b===rt)); return; }
   const a=e.target.closest('[data-act]'); if(!a) return;
   const act=a.dataset.act;
@@ -865,6 +1047,7 @@ document.addEventListener('click',async e=>{
   else if (act==='manual'){ S.features=priorFeatures(); S.source='manual'; S.isSample=false; S.checkIds=null; go('confirm'); }
   else if (act==='retake'){ if(S.photoUrl) URL.revokeObjectURL(S.photoUrl); S.photoUrl=null; S.stillSide=null; renderPhoto(); }
   else if (act==='usephoto') usePhoto();
+  else if (act==='aboutnext'){ saveAbout(); go('photo'); }
   else if (act==='useanyway'){ S.stillSide='override'; usePhoto(); }
   else if (act==='zoom'){ const z=document.createElement('div'); z.className='zoom'; z.innerHTML=`<img src="${S.photoUrl}" alt="Your palm photo, enlarged"><button class="btn primary">Close</button>`; z.onclick=()=>z.remove(); document.body.append(z); }
   else if (act==='read'){ S.isSample=false; S.rating=0; go('reading'); }
